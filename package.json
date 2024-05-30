@@ -1,0 +1,12 @@
+{
+  "name": "shirafuka_practice",
+  "version": "1.0.0",
+  "description": "これは白深やよいが練習で作ったプログラムを置いておく場所です。",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}
