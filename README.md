@@ -35,3 +35,10 @@
 ├── index.html
 └── main.css
 ```
+
+## Node.js
+
+### Node_fb2kRichPresence.js
+
+foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
+詳しくは[ここ](https://github.com/shirafukayayoi/Node_fb2kRichPresence)
