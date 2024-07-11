@@ -55,7 +55,7 @@
 
 楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
 実行結果はこんな感じ。
-![image](./image/image.png)
+![image](./image/LightNovel_GoogleCalendarPush.png
 詳しくは、このレポジトリと、Zennを見てください。  
 [https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
 [https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
@@ -65,5 +65,7 @@
 ### Node_fb2kRichPresence.js
 
 foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
+実行結果はこんな感じ。  
+![image](./image/Node_fb2kRichPresence.png)
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
