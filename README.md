@@ -40,7 +40,7 @@
 
 鍵がかかっているPDFを総当たりで調べるためのコード。  
 自分が昔作ったPDFのパスワードがわからなくなってしまったので作りました。  
-コード内の`characters`と`count`を書き換えて使います。。  
+コード内の`characters`と`count`を書き換えて使います。  
 **実行結果:**  
 
 ```text
@@ -51,9 +51,19 @@
 パスワードは????でした。
 ```
 
+### LightNovel_GoogleCalendarPush.py
+
+楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
+実行結果はこんな感じ。
+![image](./image/image.png)
+詳しくは、このレポジトリと、Zennを見てください。  
+[https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
+[https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
+
 ## Node.js
 
 ### Node_fb2kRichPresence.js
 
 foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
-詳しくは[ここ](https://github.com/shirafukayayoi/Node_fb2kRichPresence)
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
