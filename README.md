@@ -54,6 +54,7 @@
 ### LightNovel_GoogleCalendarPush.py
 
 楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
+`year`と`month`、`calendar_id`を入れ、`target_media`にGoogleカレンダーに追加したい出版社を入れ実行。  
 実行結果はこんな感じ。
 ![image](./image/LightNovel_GoogleCalendarPush.png
 詳しくは、このレポジトリと、Zennを見てください。  
