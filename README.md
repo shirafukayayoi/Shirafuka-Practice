@@ -61,6 +61,12 @@
 [https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
 [https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
 
+### RandamNumber.py
+
+簡単な数あてゲーム。  
+実行結果はこんな感じ。  
+![image](./image/RandamNumber.py.png)
+
 ## Node.js
 
 ### Node_fb2kRichPresence.js
