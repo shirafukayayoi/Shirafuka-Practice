@@ -2,11 +2,13 @@
 
 ## Explanation
 
-これは白深やよいが練習で作ったプログラムを置いておく場所です。
+これは白深やよいが練習で作ったプログラムを置いておく場所です。  
+PythonやNode.jsを使っているので、そのプログラムを置いておきます。  
+自分が少しずつ覚えながら作っているコードなので、コメントが沢山ありますが注意してください。  
 
 ## Links
 
-- [白深やよいのTwitter](https://x.com/shirafuka_yayoi)
+- Twitter [@shirafuka_yayoi](https://x.com/shirafuka_yayoi)
 
 ## Shirafuka_Programs
 
@@ -14,8 +16,10 @@
 
 ### ImportOS_DirectoryText.py
 
-`python ImportOS_DirectoryText,py <ディレクトリパス>`  
-ディレクトリの構成を出力してくれるスクリプト。
+`Add 2024/06/03`  
+ディレクトリの構成を出力してくれるPython。  
+~~`python ImportOS_DirectoryText,py <ディレクトリパス>`~~  
+実行してからディレクトリを入れるようにしました。  
 
 **実行結果:**  
 
@@ -36,11 +40,17 @@
 └── main.css
 ```
 
+**chenge log:**
+`2021/07/17`:cmdからディレクトリを入力できるようにした。
+
 ### PDF_PasswordCancellation.py
 
+`Add 2024/06/28`  
 鍵がかかっているPDFを総当たりで調べるためのコード。  
 自分が昔作ったPDFのパスワードがわからなくなってしまったので作りました。  
-コード内の`characters`と`count`を書き換えて使います。  
+置いたPDFのディレクトリと同じ場所にパスワードが解除されたPDFが出力されます。  
+~~コード内の`characters`と`count`を書き換えて使います。~~  
+コードを実行してから選択できるようにしました。  
 **実行結果:**  
 
 ```text
@@ -51,8 +61,12 @@
 パスワードは????でした。
 ```
 
+**Chenge Log:**  
+`2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
+
 ### LightNovel_GoogleCalendarPush.py
 
+`Add 2024/07/11`  
 楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
 `year`と`month`、`calendar_id`を入れ、`target_media`にGoogleカレンダーに追加したい出版社を入れ実行。  
 実行結果はこんな感じ。
@@ -63,16 +77,18 @@
 
 ### RandamNumber.py
 
+`Add 2024/07/16`  
 簡単な数あてゲーム。  
 実行結果はこんな感じ。  
-![image](./image/RandamNumber.py.png)
+![image](./image/RandamNumber.png)
 
 ## Node.js
 
 ### Node_fb2kRichPresence.js
 
+`Add 2024/06/11`  
 foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
 実行結果はこんな感じ。  
-![image](./image/Node_fb2kRichPresence.png)
+![image](./image/Node_fb2kRichPresence.png)  
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  

@@ -3,15 +3,15 @@ import itertools
 import sys
 
 #パスワードがかけられているPDFファイル
-pdf_lock = r""
-#パスワード解除後のPDFファイル
-pdf_nolock = r""
+pdf_lock = input("PDFファイルのパスを入力してください：")
+# パスワード解除後のPDFファイル
+pdf_nolock = pdf_lock.replace('.pdf', '_nolock.pdf')
 
 #パスワードの確認に使用する文字
 characters = [ '0', '1', '2', '3', '4', '5', '6', '7', '8', '9']
 
 #パスワードの桁数の設定
-count = 3
+count = int(input("パスワードの桁数を入力してください："))  # int()で文字列を数値に変換
 
 #総当たり開始
 while True:
