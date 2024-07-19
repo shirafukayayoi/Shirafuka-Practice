@@ -24,7 +24,7 @@ class Watcher:      # フォルダの監視を行うものをわかりやすく�
 
         self.observer.join()    # 監視が終わるのを待つ
 
-class Handler(FileSystemEventHandler):  # フォルダ内のファイルの変更を検知するために必要
+class Handler(FileSystemEventHandler):  # フォルダ内のファイルの変更を検知するため必要
 
     @staticmethod
     def on_created(event):

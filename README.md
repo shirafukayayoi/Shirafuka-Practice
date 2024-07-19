@@ -40,7 +40,7 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 └── main.css
 ```
 
-**chenge log:**
+**chenge log:**  
 `2021/07/17`:cmdからディレクトリを入力できるようにした。
 
 ### PDF_PasswordCancellation.py
@@ -81,6 +81,13 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 簡単な数あてゲーム。  
 実行結果はこんな感じ。  
 ![image](./image/RandamNumber.png)
+
+### AutoFolderUnzip.py
+
+`Add 2024/07/17`  
+フォルダ内のzipファイルを解凍するPython。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
 
 ## Node.js
 
