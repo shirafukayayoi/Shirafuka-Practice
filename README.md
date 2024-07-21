@@ -99,3 +99,9 @@ foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生�
 ![image](./image/Node_fb2kRichPresence.png)  
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
+
+### PuppeteerDocs.js
+
+`Add 2024/07/21`  
+Puppeteerの基本的な使い方ををまとめたNode.js。  
+詳しくはコード内のコメントを見てください。  
