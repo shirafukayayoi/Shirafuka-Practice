@@ -89,6 +89,21 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
 
+### DMM_PurchhaseList.py
+
+`Add 2024/07/27`  
+DMMの購入履歴を取得するPython。  
+csvファイルに出力されます。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/DMM_PurchaseList](https://github.com/shirafukayayoi/DMM_PurchaseList)  
+実行結果はこんな感じ。  
+
+```csv
+タイトル,サークル名,ジャンル
+タイトル,サークル名,ジャンル
+タイトル,サークル名,ジャンル
+```
+
 ## Node.js
 
 ### Node_fb2kRichPresence.js
