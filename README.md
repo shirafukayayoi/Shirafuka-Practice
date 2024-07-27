@@ -104,6 +104,12 @@ csvファイルに出力されます。
 タイトル,サークル名,ジャンル
 ```
 
+### GoogleSheetTemplate.py
+
+`Add 2024/07/28`  
+GoogleSheetに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とスプレットシートID。
+
 ## Node.js
 
 ### Node_fb2kRichPresence.js
