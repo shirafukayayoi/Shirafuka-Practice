@@ -104,6 +104,9 @@ csvファイルに出力されます。
 タイトル,サークル名,ジャンル
 ```
 
+**chenge log:**  
+`2024/07/28`:GoogleSheetに出力するようにした。
+
 ### GoogleSheetTemplate.py
 
 `Add 2024/07/28`  

@@ -8,6 +8,8 @@ from dotenv import load_dotenv
 import os
 import requests
 import json
+import gspread
+from google.oauth2.service_account import Credentials
 
 # .envファイルの読み込み
 load_dotenv()
@@ -17,6 +19,7 @@ def main():
     email = os.environ["DMM_EMAIL"]
     password = os.environ["DMM_PASSWORD"]
     discord_webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+    sheet_url = os.environ["DMM_GOOGLE_SHEET_URL"]
     
     if not email or not password or not discord_webhook_url:
         print("環境変数が正しく読み込まれていません。")
@@ -28,6 +31,7 @@ def main():
     today = datetime.now().strftime("%Y-%m-%d")     # 今日の日付を取得（ファイル名に入れるため）
     login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
     csv_title = f"DMM_{today}_PURCHASED_LIST.csv"
+    count = 0
 
     driver = webdriver.Chrome()
     
@@ -41,8 +45,11 @@ def main():
     csv_writer = CSVWriter(csv_title)
     csv_writer.write_data(data)
 
+    google_spreadsheet = GoogleSpreadsheet()
+    google_spreadsheet.write_data(data, count)
+
     discord = discord_send_message(discord_webhook_url)
-    discord.send_message(f"DMMの購入リストを取得しました: {csv_title}")
+    discord.send_message(f"DMMの購入リストを{count}回取得、書き込みました: {csv_title}")
     
     driver.quit()
 
@@ -76,7 +83,6 @@ class DMMLogin:
             time.sleep(3)
             login_button = self.driver.find_element(By.XPATH, '//input[@value="ログイン"]')
             login_button.click()
-            time.sleep(3)
             print("フォームを送信しました")
         except Exception as e:
             print(f"フォームの送信に失敗しました: {e}")
@@ -88,6 +94,7 @@ class DMMLibrary:
         self.driver = driver
 
     def navigate_to_library(self):
+        time.sleep(3)
         self.driver.get("https://www.dmm.co.jp/dc/-/mylibrary/")
         try:
             time.sleep(3)
@@ -152,5 +159,28 @@ class discord_send_message:
         response = requests.post(self.discord_webhook_url, headers=headers, data=json.dumps(data))
         print(response.status_code)
 
-if __name__ == "__main__":
-    main()
+class GoogleSpreadsheet:
+    def __init__(self,sheet_url):
+        self.scope = ['https://spreadsheets.google.com/feeds',
+                        'https://www.googleapis.com/auth/drive']
+        self.creds = Credentials.from_service_account_file('credentials.json', scopes=self.scope)
+        self.client = gspread.authorize(self.creds)
+        self.spreadsheet = self.client.open_by_url(sheet_url)
+        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+        print("Google Spreadsheetに接続しました")
+
+    # Googleスプレッドシートにデータを書き込む
+    def write_data(self, data, count):
+        self.sheet.clear()
+        self.sheet.insert_row(["タイトル", "サークル", "種類"], 1)
+        for row in data:
+            time.sleep(3)
+            count += 1
+            return count
+            self.sheet.append_row(row)
+            print(row)
+
+        print(f"{count}回データを書き込みました。")
+
+    if __name__ == "__main__":
+        main()
