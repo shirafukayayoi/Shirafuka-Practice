@@ -7,7 +7,8 @@ load_dotenv()
 
 def main():
     spreadsheet = GoogleSpreadsheet()   # initを実行するために必要
-    spreadsheet.read_data()
+    spreadsheet.get_last_column_and_convert_to_alpha()
+    
 
 # 認証情報を使ってGoogleスプレッドシートにアクセスするクラス
 class GoogleSpreadsheet:
@@ -35,6 +36,27 @@ class GoogleSpreadsheet:
     # Googleスプレッドシートの1行目だけ書き込む
     def write_header(self, data):
         self.sheet.insert_row(data, 1)  # 1の値を変えると行を指定できる
+
+    # フィルターを設定する
+    def get_last_column_and_convert_to_alpha(self):
+        # 最終列の数値を取得
+        last_column_num = len(self.sheet.row_values(1))
+        print(f"最終列は{last_column_num}です")
+        
+        # 数値からアルファベットを求める内部関数
+        def num2alpha(num):
+            if num <= 26:
+                return chr(64 + num)
+            elif num % 26 == 0:
+                return num2alpha(num // 26 - 1) + chr(90)
+            else:
+                return num2alpha(num // 26) + chr(64 + num % 26)
+        
+        # 最終列を数値→アルファベットへ変換
+        last_column_alp = num2alpha(last_column_num)
+        print(f'最終列のアルファベットは{last_column_alp}です')
+        self.sheet.set_basic_filter(name=(f'A:{last_column_alp}'))
+        print("フィルターを設定しました")
 
 if __name__ == "__main__":
     main()
