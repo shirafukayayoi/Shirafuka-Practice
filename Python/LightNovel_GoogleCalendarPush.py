@@ -8,16 +8,40 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlencode
 from datetime import datetime, date, timedelta
+import json
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Load environment variables from .env file
+load_dotenv('.env')
 
 # 指定する年と月
-year = input("年を入力してください：")
-month = input("月を入力してください：")
+year = int(input("年を入力してください: "))
+month = int(input("月を入力してください: "))
 
 # 出力する出版社を指定
 target_media = ["電撃文庫", "講談社ラノベ文庫", "HJ文庫", "GA文庫", "ガガガ文庫", "ファンタジア文庫", "MF文庫J"]
 
 # カレンダーidを指定
-calendar_id = ''
+calendar_id = os.getenv("Calendar_ID")
+
+# DiscordのWebhook URLを指定
+discord_webhook_url = os.getenv("discord_webhook")
+
+def send_to_discord(message):
+    data = {
+        "content": message
+    }
+    headers = {
+        "Content-Type": "application/json"
+    }
+    response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
+    if response.status_code != 204:
+        print(f"Discordへの送信に失敗しました。ステータスコード: {response.status_code}")
+
+# discordに通知を飛ばす
+send_to_discord("ライトノベルの情報をを取得します。")
 
 # GoogleCalendarの認証情報のロード
 creds = None
@@ -104,40 +128,40 @@ for page in range(1, 5):
 
         media_items = html_soup.find_all(class_="item-title__media")
 
-        for i, title in enumerate(title_list):
-            if i < len(media_items):
-                media = media_items[i].get_text().strip()
-                formatted_date = convert_japanese_date(date_list[i], year)
+    for i, title in enumerate(title_list):
+        if i < len(media_items):
+            media = media_items[i].get_text().strip()
+            formatted_date = convert_japanese_date(date_list[i], year)
 
-                def check_duplicate(service, calendar_id, event_date, title):
-                    time_min = (datetime.strptime(event_date, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d') + 'T00:00:00Z'
-                    time_max = event_date + 'T00:00:00Z'
-                    events = get_events(service, calendar_id, time_min, time_max)
-                    
-                    for event in events:
-                        if event['summary'] == title and 'date' in event['start']:
-                            return True
-                    return False
+            def check_duplicate(service, calendar_id, event_date, title):
+                time_min = (datetime.strptime(event_date, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d') + 'T00:00:00Z'
+                time_max = event_date + 'T00:00:00Z'
+                events = get_events(service, calendar_id, time_min, time_max)
+                
+                for event in events:
+                    if event['summary'] == title and 'date' in event['start']:
+                        return True
+                return False
 
-                if check_duplicate(service, calendar_id, formatted_date, title):
-                    print(f'{title} のイベントは既にカレンダーに存在します。')
-                    continue
+            if check_duplicate(service, calendar_id, formatted_date, title):
+                print(f'{title} のイベントは既にカレンダーに存在します。')
+                continue
 
-                if any(target in media for target in target_media):
-                    event = {
-                        'summary': title,
-                        'start': {
-                            'date': formatted_date,
-                            'timeZone': 'Asia/Tokyo',
-                        },
-                        'end': {
+            if any(target in media for target in target_media):
+                event = {
+                    'summary': title,
+                    'start': {
                         'date': formatted_date,
-                            'timeZone': 'Asia/Tokyo',
-                        },
-                    }
+                        'timeZone': 'Asia/Tokyo',
+                    },
+                    'end': {
+                        'date': formatted_date,
+                        'timeZone': 'Asia/Tokyo',
+                    },
+                }
 
-                    event = service.events().insert(calendarId=calendar_id, body=event).execute()
-                    print(f'{title} のイベントが追加されました。')
+                event = service.events().insert(calendarId=calendar_id, body=event).execute()
+                print(f'{title} のイベントが追加されました。')
 
             else:
                 print(f"インデックス {i} が範囲外になったため終了します。")

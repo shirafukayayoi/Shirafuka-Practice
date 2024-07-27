@@ -16,13 +16,13 @@ def main():
     # 環境変数の読み込みを確認
     email = os.environ["DMM_EMAIL"]
     password = os.environ["DMM_PASSWORD"]
-    discord_webhook_url = os.environ["DMM_DISCORD_WEBHOOK_URL"]
+    discord_webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
     
     if not email or not password or not discord_webhook_url:
         print("環境変数が正しく読み込まれていません。")
         print(f"DMM_EMAIL: {email}")
         print(f"DMM_PASSWORD: {password}")
-        print(f"DMM_DISCORD_WEBHOOK_URL: {discord_webhook_url}")
+        print(f"DISCORD_WEBHOOK_URL: {discord_webhook_url}")
         return
 
     today = datetime.now().strftime("%Y-%m-%d")     # 今日の日付を取得（ファイル名に入れるため）
@@ -73,15 +73,10 @@ class DMMLogin:
             print(f"パスワード入力フィールドが見つかりません: {e}")
         
         try:
-            remember_box = self.driver.find_element(By.CLASS_NAME, "checkbox-input")
-            remember_box.click()
-            print("チェックボックス選択完了")
-        except Exception as e:
-            print(f"チェックボックスが見つかりません: {e}")
-        
-        try:
+            time.sleep(3)
             login_button = self.driver.find_element(By.XPATH, '//input[@value="ログイン"]')
             login_button.click()
+            time.sleep(3)
             print("フォームを送信しました")
         except Exception as e:
             print(f"フォームの送信に失敗しました: {e}")
@@ -95,6 +90,7 @@ class DMMLibrary:
     def navigate_to_library(self):
         self.driver.get("https://www.dmm.co.jp/dc/-/mylibrary/")
         try:
+            time.sleep(3)
             yes_button = self.driver.find_element(By.XPATH, "//a[contains(@href, 'declared=yes')]")
             yes_button.click()
             print("「はい」をクリックしました")
