@@ -7,7 +7,7 @@ load_dotenv()
 
 def main():
     spreadsheet = GoogleSpreadsheet()   # initを実行するために必要
-    spreadsheet.get_last_column_and_convert_to_alpha()
+    spreadsheet.AutoFilter()    # フィルターを設定する
     
 
 # 認証情報を使ってGoogleスプレッドシートにアクセスするクラス
@@ -38,7 +38,7 @@ class GoogleSpreadsheet:
         self.sheet.insert_row(data, 1)  # 1の値を変えると行を指定できる
 
     # フィルターを設定する
-    def get_last_column_and_convert_to_alpha(self):
+    def AutoFilter(self):
         # 最終列の数値を取得
         last_column_num = len(self.sheet.row_values(1))
         print(f"最終列は{last_column_num}です")
