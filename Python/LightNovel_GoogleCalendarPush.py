@@ -10,8 +10,8 @@ from urllib.parse import urlencode
 from datetime import datetime, date, timedelta
 
 # 指定する年と月
-year = 2024
-month = 7
+year = input("年を入力してください：")
+month = input("月を入力してください：")
 
 # 出力する出版社を指定
 target_media = ["電撃文庫", "講談社ラノベ文庫", "HJ文庫", "GA文庫", "ガガガ文庫", "ファンタジア文庫", "MF文庫J"]

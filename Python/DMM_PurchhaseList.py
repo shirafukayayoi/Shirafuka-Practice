@@ -6,14 +6,27 @@ import csv
 from datetime import datetime
 from dotenv import load_dotenv
 import os
+import requests
+import json
 
+# .envファイルの読み込み
 load_dotenv()
 
 def main():
+    # 環境変数の読み込みを確認
+    email = os.environ["DMM_EMAIL"]
+    password = os.environ["DMM_PASSWORD"]
+    discord_webhook_url = os.environ["DMM_DISCORD_WEBHOOK_URL"]
+    
+    if not email or not password or not discord_webhook_url:
+        print("環境変数が正しく読み込まれていません。")
+        print(f"DMM_EMAIL: {email}")
+        print(f"DMM_PASSWORD: {password}")
+        print(f"DMM_DISCORD_WEBHOOK_URL: {discord_webhook_url}")
+        return
+
     today = datetime.now().strftime("%Y-%m-%d")     # 今日の日付を取得（ファイル名に入れるため）
     login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
-    email = os.environ.get("DMM_EMAIL")
-    password = os.environ.get("DMM_PASSWORD")
     csv_title = f"DMM_{today}_PURCHASED_LIST.csv"
 
     driver = webdriver.Chrome()
@@ -27,25 +40,25 @@ def main():
 
     csv_writer = CSVWriter(csv_title)
     csv_writer.write_data(data)
+
+    discord = discord_send_message(discord_webhook_url)
+    discord.send_message(f"DMMの購入リストを取得しました: {csv_title}")
     
     driver.quit()
 
 class DMMLogin:
-    # 一番最初に実行される関数、必要な情報を受け取る
     def __init__(self, driver, login_url, email, password):
         self.driver = driver
         self.login_url = login_url
         self.email = email
         self.password = password
 
-    # ログイン処理
     def login(self):
         self.driver.get(self.login_url)
         self.driver.set_window_size(1000, 1000) # ウィンドウサイズを指定
         time.sleep(10)
         
         try:
-            # ユーザー名入力
             name_box = self.driver.find_element(By.NAME, "login_id")
             name_box.send_keys(self.email)
             print("ユーザー名入力完了")
@@ -53,7 +66,6 @@ class DMMLogin:
             print(f"ユーザー名入力フィールドが見つかりません: {e}")
         
         try:
-            # パスワード入力
             pass_box = self.driver.find_element(By.NAME, "password")
             pass_box.send_keys(self.password)
             print("パスワード入力完了")
@@ -61,7 +73,6 @@ class DMMLogin:
             print(f"パスワード入力フィールドが見つかりません: {e}")
         
         try:
-            # ログイン状態を保つためのチェックボックス
             remember_box = self.driver.find_element(By.CLASS_NAME, "checkbox-input")
             remember_box.click()
             print("チェックボックス選択完了")
@@ -69,7 +80,6 @@ class DMMLogin:
             print(f"チェックボックスが見つかりません: {e}")
         
         try:
-            # フォームを送信
             login_button = self.driver.find_element(By.XPATH, '//input[@value="ログイン"]')
             login_button.click()
             print("フォームを送信しました")
@@ -77,17 +87,14 @@ class DMMLogin:
             print(f"フォームの送信に失敗しました: {e}")
         
         print("ログイン完了")
-        time.sleep(4)
 
 class DMMLibrary:
-    # 一番最初に実行される関数
     def __init__(self, driver):
         self.driver = driver
 
     def navigate_to_library(self):
         self.driver.get("https://www.dmm.co.jp/dc/-/mylibrary/")
         try:
-            # 「はい」をクリック
             yes_button = self.driver.find_element(By.XPATH, "//a[contains(@href, 'declared=yes')]")
             yes_button.click()
             print("「はい」をクリックしました")
@@ -106,38 +113,25 @@ class DMMLibrary:
         previous_scroll_height = 0
         
         while True:
-            # 現在のスクロール位置を取得
             current_scroll_height = self.driver.execute_script("return arguments[0].scrollTop + arguments[0].clientHeight;", actions)
-            
-            # スクロールする
             self.driver.execute_script("arguments[0].scrollTop += arguments[0].clientHeight;", actions)
-            
-            # しばらく待つ（スクロールが完了するまで）
             time.sleep(1)
-            
-            # 新しいスクロール位置を取得
             new_scroll_height = self.driver.execute_script("return arguments[0].scrollTop + arguments[0].clientHeight;", actions)
-            
-            # スクロールが止まった場合
             if new_scroll_height == current_scroll_height:
                 break
-        
-        # データ収集
+
         titles = self.driver.find_elements(By.CLASS_NAME, "productTitle3sdi8")
         circles = self.driver.find_elements(By.CLASS_NAME, "circleName209pI")
         kinds = self.driver.find_elements(By.CLASS_NAME, "default3EHgn")
 
-        # 各リストの長さを取得
         length = min(len(titles), len(circles), len(kinds))
         data = [(titles[i].text, circles[i].text, kinds[i].text) for i in range(length)]
         
-        # データを出力
         for title, circle, kind in data:
             print(title, circle, kind)
 
         return data
-
-
+    
 class CSVWriter:
     def __init__(self, filename):
         self.filename = filename
@@ -148,5 +142,19 @@ class CSVWriter:
             writer.writerow(["タイトル", "サークル", "種類"])
             writer.writerows(data)
 
-if __name__ == "__main__":  # このファイルが直接実行された場合のみ実行される。
+class discord_send_message:
+    def __init__(self, discord_webhook_url):
+        self.discord_webhook_url = discord_webhook_url
+
+    def send_message(self, message):
+        headers = {
+            "Content-Type": "application/json"
+        }
+        data = {
+            "content": message
+        }
+        response = requests.post(self.discord_webhook_url, headers=headers, data=json.dumps(data))
+        print(response.status_code)
+
+if __name__ == "__main__":
     main()
