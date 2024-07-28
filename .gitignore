@@ -3,3 +3,4 @@ package-lock.json
 Python/.env
 Calendar_credentials.json
 token.json
+sheet_credentials.json
