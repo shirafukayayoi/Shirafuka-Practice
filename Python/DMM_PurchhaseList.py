@@ -45,7 +45,7 @@ def main():
     csv_writer = CSVWriter(csv_title)
     csv_writer.write_data(data)
 
-    google_spreadsheet = GoogleSpreadsheet()    # クラスに値を渡す、initに渡すものがない場合は空でOK
+    google_spreadsheet = GoogleSpreadsheet(sheet_url)    # クラスに値を渡す、initに渡すものがない場合は空でOK
     google_spreadsheet.write_data(data, count)
     google_spreadsheet.AutoFilter()
 
@@ -177,9 +177,9 @@ class GoogleSpreadsheet:
         for row in data:
             time.sleep(3)
             count += 1
-            return count
             self.sheet.append_row(row)
             print(row)
+            return count
 
         print(f"{count}回データを書き込みました。")
     

@@ -1,4 +1,5 @@
 node_modules/
 package-lock.json
 Python/.env
-credentials.json
+Calendar_credentials.json
+token.json
