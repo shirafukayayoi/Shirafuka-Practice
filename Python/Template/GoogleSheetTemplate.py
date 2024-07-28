@@ -15,7 +15,7 @@ class GoogleSpreadsheet:
     def __init__(self):
         self.scope = ['https://spreadsheets.google.com/feeds',
                         'https://www.googleapis.com/auth/drive']
-        self.creds = Credentials.from_service_account_file('credentials.json', scopes=self.scope)
+        self.creds = Credentials.from_service_account_file('Sheet_credentials.json', scopes=self.scope)
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_url(os.environ["TEMPLETE_GOOGLE_SHEET_URL"])
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
