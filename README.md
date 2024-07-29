@@ -122,6 +122,16 @@ GoogleSheetに接続するためのテンプレート。
 - スプレットシートに1行目だけ書き込む
 - フィルターを設定する
 
+### GoogleCalendarTemplate.py
+
+`Add 2024/07/29`  
+GoogleCalendarに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とカレンダーID。  
+**TemplateList:**
+
+- イベントを追加する
+- イベントを取得する
+
 ## Node.js
 
 ### Node_fb2kRichPresence.js
