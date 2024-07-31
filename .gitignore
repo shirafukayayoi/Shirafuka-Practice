@@ -4,3 +4,5 @@ Python/.env
 Calendar_credentials.json
 token.json
 sheet_credentials.json
+drive_credentials.json
+token.pickle
