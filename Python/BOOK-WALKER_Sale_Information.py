@@ -34,7 +34,7 @@ def main():
         spreadsheet.create_spreadsheet(Filetitle, data, count, folder_id)
         spreadsheet.AutoFilter()
         discord = discord_send_message()
-        discord.send_message(f"BookWalkerのセール情報を{count}回取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{spreadsheet.spreadsheet_id}")
+        discord.send_message(f"BookWalkerのセール情報をGoogleスプレットシートに書き込みました:\nhttps://docs.google.com/spreadsheets/d/{spreadsheet.spreadsheet_id}")
 
 class WebScraping:
     def __init__(self):
