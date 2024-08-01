@@ -107,6 +107,19 @@ csvファイルに出力されます。
 **chenge log:**  
 `2024/07/28`:GoogleSheetに出力するようにした。
 
+### BOOK-WALKER_Sale_Information.py
+
+Add `2024/08/02`  
+BOOK-WALKERのセール情報を取得するPython。  
+Googleスプレットシートに出力されます。  
+
+```csv
+タイトル,著者,価格,レーベル,終了日
+```
+
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
+
 ## Python-Templates
 
 ### GoogleSheetTemplate.py

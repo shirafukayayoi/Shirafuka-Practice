@@ -14,7 +14,7 @@ def main():
 class GoogleDriveAuth:
     SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
 
-    def __init__(self, token_path='token.pickle', credentials_path='client_secret.json'):
+    def __init__(self, token_path='token.pickle', credentials_path='drive_credentials.json'):
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.creds = None
@@ -60,7 +60,7 @@ class GoogleDriveAuth:
             print('Sheets service is not available.')
             return None
 
-    #
+    # 新しいスプレッドシートを作成するメソッド
     def create_spreadsheet(self, title):
         if not self.sheets:
             print('Sheets service is not available.')
@@ -76,6 +76,20 @@ class GoogleDriveAuth:
         spreadsheet_id = request.get('spreadsheetId')
         print(f'Spreadsheet created with ID: {spreadsheet_id}')
         return spreadsheet_id
+
+    # ファイルの移動をするメソッド
+    def Movement_files(self):
+        folder_id = 'os.environ["BOOKWALKER_FOLDER_ID"]'
+        file_id = input('Please enter the file ID: ')
+        file_metadata = {
+            'parents': [folder_id]
+        }
+        self.drive.files().update(
+            fileId=file_id,
+            addParents=folder_id,
+            removeParents='root',
+            fields='id, parents'
+        ).execute()
 
 if __name__ == '__main__':
     main()
