@@ -14,6 +14,8 @@ import gspread
 import time
 from dotenv import load_dotenv
 import os
+import requests
+import json
 
 load_dotenv()
 
@@ -31,6 +33,8 @@ def main():
         spreadsheet.get_drive_service()
         spreadsheet.create_spreadsheet(Filetitle, data, count, folder_id)
         spreadsheet.AutoFilter()
+        discord = discord_send_message()
+        discord.send_message(f"BookWalkerのセール情報を{count}回取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{spreadsheet.spreadsheet_id}")
 
 class WebScraping:
     def __init__(self):
@@ -93,11 +97,25 @@ class WebScraping:
                 for title, author, label, enddate, money in zip(titles, authors, labels, enddates, moneys):
                     self.title_list.append(title.get_text().strip())
                     self.author_list.append(author.get_text().strip())
-                    self.money_list.append(money.get_text().strip())
                     self.label_list.append(label.get_text().strip())
+                    
+                    # 日付のフォーマット変換
                     formatted_date = self.format_date(enddate.get_text().strip())
                     self.enddate_list.append(formatted_date)
+                    
+                    # お金の額の処理
+                    money_text = money.get_text().strip()
+                    # カンマや円記号を取り除く
+                    money_text = money_text.replace(',', '').replace('¥', '')
+                    try:
+                        money_value = float(money_text)
+                    except ValueError:
+                        money_value = 0.0  # 数値変換に失敗した場合は0.0を設定
+
+                    self.money_list.append(money_value)
+                    
                     print(f"{len(self.enddate_list)}件目のデータを取得しました")
+
 
         # データの総数を表示
         print(f"タイトルの数: {len(self.title_list)}")
@@ -232,6 +250,19 @@ class GoogleSpreadsheet:
         print(f'最終列のアルファベットは{last_column_alp}です')
         self.sheet.set_basic_filter(name=(f'A:{last_column_alp}'))
         print("フィルターを設定しました")
+    
+class discord_send_message:
+    def __init__(self):
+        self.discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
 
+    def send_message(self, message):
+        headers = {
+            "Content-Type": "application/json"
+        }
+        data = {
+            "content": message
+        }
+        response = requests.post(self.discord_webhook_url, headers=headers, data=json.dumps(data))
+        print(response.status_code)
 if __name__ == "__main__":
     main()

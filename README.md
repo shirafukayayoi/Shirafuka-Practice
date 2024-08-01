@@ -120,6 +120,9 @@ Googleスプレットシートに出力されます。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
 
+**chenge log:**  
+`2024/08/02`:金額を数値として取得できるようにした。
+
 ## Python-Templates
 
 ### GoogleSheetTemplate.py
