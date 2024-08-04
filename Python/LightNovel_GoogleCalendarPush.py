@@ -1,171 +1,141 @@
+import os
+import json
+import requests
+from bs4 import BeautifulSoup
+from urllib.parse import urlencode
+from datetime import datetime, timedelta
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from google.auth.transport.requests import Request
-import datetime
-import os
-import requests
-from bs4 import BeautifulSoup
-from urllib.parse import urlencode
-from datetime import datetime, date, timedelta
-import json
 from dotenv import load_dotenv
 
+# 環境変数のロード
 load_dotenv()
 
-# Load environment variables from .env file
-load_dotenv('.env')
-
-# 指定する年と月
-year = int(input("年を入力してください: "))
-month = int(input("月を入力してください: "))
-
-# 出力する出版社を指定
-target_media = ["電撃文庫", "講談社ラノベ文庫", "HJ文庫", "GA文庫", "ガガガ文庫", "ファンタジア文庫", "MF文庫J"]
-
-# カレンダーidを指定
-calendar_id = os.getenv("Calendar_ID")
-
-# DiscordのWebhook URLを指定
-discord_webhook_url = os.getenv("discord_webhook")
-
-def send_to_discord(message):
-    data = {
-        "content": message
-    }
-    headers = {
-        "Content-Type": "application/json"
-    }
-    response = requests.post(discord_webhook_url, data=json.dumps(data), headers=headers)
-    if response.status_code != 204:
-        print(f"Discordへの送信に失敗しました。ステータスコード: {response.status_code}")
-
-# discordに通知を飛ばす
-send_to_discord("ライトノベルの情報をを取得します。")
-
-# GoogleCalendarの認証情報のロード
-creds = None
-# credentials.json ファイルに保存された認証情報をロードする
-if os.path.exists('token.json'):
-    creds = Credentials.from_authorized_user_file('token.json')
-
-# 認証情報がない場合や期限切れの場合は、ユーザーに認証を求める
-if not creds or not creds.valid:
-    if creds and creds.expired and creds.refresh_token:
-        creds.refresh(Request())
-    else:
-        flow = InstalledAppFlow.from_client_secrets_file(
-            'credentials.json', ['https://www.googleapis.com/auth/calendar.events'])
-        creds = flow.run_local_server(port=0)
-    # 認証情報を保存する
-    with open('token.json', 'w') as token:
-        token.write(creds.to_json())
-
-# Google Calendar API の使用
-service = build('calendar', 'v3', credentials=creds)
-
-# ベースのurl
-base_url = "https://books.rakuten.co.jp/calendar/001017/monthly/"
-query_params = {
-    "tid": f"{year}-{month:02}-01",  # ここで日付を固定してみましたが、必要に応じて変更してください
-    "p": "{}",
-    "s": "14",
-    "#rclist": ""
-}
-
-# 日本語の日付を変換する関数
-def convert_japanese_date(japanese_date_str, year):
-
-    if '上旬' in japanese_date_str:
-        return f"{year}-{month}-02"
-
-    # 日本語の日付をパースする
-    try:
-        date_obj = datetime.strptime(japanese_date_str, '%m月 %d日')
-    except ValueError:
-        return ''  # パースできない場合も空文字列を返す
+def main():
+    manager = LightNovelEventManager()
     
-    # 年を追加して目的の形式に変換する
-    formatted_date = date_obj.replace(year=year).strftime('%Y-%m-%d')
-    return formatted_date
+    for page in range(1, 6):
+        novel_count = manager.process_page(page)
+        manager.send_to_discord(f"ページ {page} で {novel_count} 件のライトノベル情報を取得しました。")
 
-
-def get_events(service, calendar_id, time_min=None, time_max=None):
-    events_result = service.events().list(
-        calendarId=calendar_id,
-        timeMin=time_min,
-        timeMax=time_max,
-        singleEvents=True,
-        orderBy='startTime'
-    ).execute()
-    return events_result.get('items', [])
-
-for page in range(1, 5):
-    query_params["p"] = str(page)
-    url = base_url + "?" + urlencode(query_params)
-    req = requests.get(url)
-
-    if req.status_code == 200:
-        req.encoding = req.apparent_encoding
-        html_soup = BeautifulSoup(req.text, "html.parser")
+class LightNovelEventManager:
+    def __init__(self):
+        self.year = 2024
+        self.month = int(input("取得する月を入力してください: "))
+        self.calendar_id = os.environ['LightNovel_GoogleCalendar_ID']
+        self.discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
+        self.creds = self.authenticate_google()
+        self.service = build('calendar', 'v3', credentials=self.creds)
+    
+    def send_to_discord(self, message):
+        data = {"content": message}
+        headers = {"Content-Type": "application/json"}
+        try:
+            response = requests.post(self.discord_webhook_url, data=json.dumps(data), headers=headers)
+            response.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(f"Discordへの送信に失敗しました: {e}")
+    
+    def authenticate_google(self):
+        creds = None
+        if os.path.exists('token.json'):
+            creds = Credentials.from_authorized_user_file('token.json')
         
-        title_list = []
-        date_list = []
-
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'Calendar_credentials.json', ['https://www.googleapis.com/auth/calendar.events'])
+                creds = flow.run_local_server(port=0)
+            with open('token.json', 'w') as token:
+                token.write(creds.to_json())
+        
+        return creds
+    
+    def convert_japanese_date(self, japanese_date_str):
+        if '上旬' in japanese_date_str:
+            return f"{self.year}-{self.month:02}-01"
+        try:
+            date_obj = datetime.strptime(japanese_date_str, '%m月 %d日')
+            return date_obj.replace(year=self.year).strftime('%Y-%m-%d')
+        except ValueError:
+            return ''
+    
+    def get_events(self, time_min=None, time_max=None):
+        events_result = self.service.events().list(
+            calendarId=self.calendar_id,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy='startTime'
+        ).execute()
+        return events_result.get('items', [])
+    
+    def check_duplicate(self, event_date, title):
+        time_min = (datetime.strptime(event_date, '%Y-%m-%d') - timedelta(days=1)).strftime('%Y-%m-%d') + 'T00:00:00Z'
+        time_max = event_date + 'T00:00:00Z'
+        events = self.get_events(time_min, time_max)
+        return any(event['summary'] == title and 'date' in event['start'] for event in events)
+    
+    def fetch_titles_and_dates(self, html_soup):
         titles = html_soup.find_all(class_="item-title__text")
-        if titles:
-            for title in titles:
-                title_list.append(title.get_text().strip())
-        else:
-            print("指定されたクラスの要素が見つかりません。")
-
         dates = html_soup.find_all(class_="item-release__date")
-        if dates:
-            for date in dates:
-                date_list.append(date.get_text().strip())
-        else:
-            print("指定された要素は見つかりません。")
-
         media_items = html_soup.find_all(class_="item-title__media")
-
-    for i, title in enumerate(title_list):
-        if i < len(media_items):
-            media = media_items[i].get_text().strip()
-            formatted_date = convert_japanese_date(date_list[i], year)
-
-            def check_duplicate(service, calendar_id, event_date, title):
-                time_min = (datetime.strptime(event_date, '%Y-%m-%d') + timedelta(days=-1)).strftime('%Y-%m-%d') + 'T00:00:00Z'
-                time_max = event_date + 'T00:00:00Z'
-                events = get_events(service, calendar_id, time_min, time_max)
+        
+        title_list = [title.get_text().strip() for title in titles]
+        date_list = [date.get_text().strip() for date in dates]
+        media_list = [media.get_text().strip() for media in media_items]
+        
+        return title_list, date_list, media_list
+    
+    def process_page(self, page):
+        base_url = "https://books.rakuten.co.jp/calendar/001017/monthly/"
+        query_params = {
+            "tid": f"{self.year}-{self.month:02}-01",
+            "p": str(page),
+            "s": "14",
+            "#rclist": ""
+        }
+        url = base_url + "?" + urlencode(query_params)
+        
+        try:
+            req = requests.get(url)
+            req.raise_for_status()
+            req.encoding = req.apparent_encoding
+        except requests.exceptions.RequestException as e:
+            print(f"リクエスト中にエラーが発生しました: {e}")
+            return 0
+        
+        html_soup = BeautifulSoup(req.text, "html.parser")
+        title_list, date_list, media_list = self.fetch_titles_and_dates(html_soup)
+        
+        novel_count = 0
+        
+        for i, title in enumerate(title_list):
+            if i < len(media_list):
+                media = media_list[i]
+                formatted_date = self.convert_japanese_date(date_list[i])
                 
-                for event in events:
-                    if event['summary'] == title and 'date' in event['start']:
-                        return True
-                return False
-
-            if check_duplicate(service, calendar_id, formatted_date, title):
-                print(f'{title} のイベントは既にカレンダーに存在します。')
-                continue
-
-            if any(target in media for target in target_media):
+                if self.check_duplicate(formatted_date, title):
+                    print(f'{title} のイベントは既にカレンダーに存在します。')
+                    continue
+                
                 event = {
                     'summary': title,
-                    'start': {
-                        'date': formatted_date,
-                        'timeZone': 'Asia/Tokyo',
-                    },
-                    'end': {
-                        'date': formatted_date,
-                        'timeZone': 'Asia/Tokyo',
-                    },
+                    'start': {'date': formatted_date, 'timeZone': 'Asia/Tokyo'},
+                    'end': {'date': formatted_date, 'timeZone': 'Asia/Tokyo'}
                 }
-
-                event = service.events().insert(calendarId=calendar_id, body=event).execute()
+                self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
                 print(f'{title} のイベントが追加されました。')
-
+                novel_count += 1
             else:
-                print(f"インデックス {i} が範囲外になったため終了します。")
+                print("指定されたクラスの要素が見つかりません。")
                 break
+        
+        return novel_count
 
-    else:
-        print(f"リクエストが失敗しました。ステータスコード: {req.status_code}")
+if __name__ == "__main__":
+    main()
