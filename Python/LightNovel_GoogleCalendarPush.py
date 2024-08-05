@@ -16,14 +16,18 @@ load_dotenv()
 def main():
     manager = LightNovelEventManager()
     
+    total_novels = 0
+    
     for page in range(1, 6):
-        novel_count = manager.process_page(page)
-        manager.send_to_discord(f"ページ {page} で {novel_count} 件のライトノベル情報を取得しました。")
+        page_novels = manager.process_page(page)
+        total_novels += page_novels
+
+    manager.send_to_discord(f"合計 {total_novels} 件のライトノベル情報がGoogleカレンダーに追加されました。")
 
 class LightNovelEventManager:
     def __init__(self):
         self.year = 2024
-        self.month = int(input("取得する月を入力してください: "))
+        self.month = 8
         self.calendar_id = os.environ['LightNovel_GoogleCalendar_ID']
         self.discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
         self.creds = self.authenticate_google()
