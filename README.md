@@ -129,6 +129,10 @@ Googleスプレットシートに出力されます。
 RSSフィードを取得して、新しい記事があれば通知するPython。  
 最新のtitleとURLを取得します。  
 
+```text
+title,URL
+```
+
 ## Python-Templates
 
 ### GoogleSheetTemplate.py
