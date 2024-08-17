@@ -123,6 +123,12 @@ Googleスプレットシートに出力されます。
 **chenge log:**  
 `2024/08/02`:金額を数値として取得できるようにした。
 
+### RSS_Notification.py
+
+`Add 2024/08/18`  
+RSSフィードを取得して、新しい記事があれば通知するPython。  
+最新のtitleとURLを取得します。  
+
 ## Python-Templates
 
 ### GoogleSheetTemplate.py
