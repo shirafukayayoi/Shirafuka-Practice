@@ -26,7 +26,7 @@ class GoogleSpreadsheet:
         self.client = None
         self.sheetclient = gspread.authorize(self.sheet_creds)
 
-        self.spreadsheet = self.sheetclient.open_by_url(os.environ["TEMPLETE_GOOGLE_SHEET_URL"])
+        self.spreadsheet = self.sheetclient.open_by_url(os.environ["TEMPLETE_GOOGLE_SHEET_URL"])    # または、open_by_key('スプレッドシートキー')を使う
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
         self.authenticate()
 
