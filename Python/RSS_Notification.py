@@ -1,7 +1,7 @@
 import feedparser
 
 # RSSフィードのURLを指定
-rss_url = "https://github.com/shirafukayayoi/Shirafuka_Practice/commits/main/.atom"
+rss_url = input('RSSフィードのURLを入力してください: ')
 # RSSフィードを取得して解析
 feed = feedparser.parse(rss_url)
 
@@ -10,8 +10,10 @@ latest_article = feed.entries[0]
 # 最新の記事のタイトルを取得
 title = latest_article.title
 # 最新の記事のURLを取得
-link = latest_article.link
+link = latest_article.id
 
 # RSSのタイトルとURLを表示
+print(feed)
+print(f"----------------")
 print(title)
 print(link)
