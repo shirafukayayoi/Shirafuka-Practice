@@ -12,7 +12,88 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 
 ## Shirafuka_Programs
 
+## Node.js
+
+### Node_fb2kRichPresence.js
+
+`Add 2024/06/11`  
+foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
+実行結果はこんな感じ。  
+![image](./image/Node_fb2kRichPresence.png)  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
+
+### PuppeteerDocs.js
+
+`Add 2024/07/21`  
+Puppeteerの基本的な使い方をまとめたNode.js。  
+詳しくはコード内のコメントを見てください。  
+
 ## Python
+
+### AutoFolderUnzip.py
+
+`Add 2024/07/17`  
+フォルダ内のzipファイルを解凍するPython。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
+
+### BOOK-WALKER_Sale_Information.py
+
+Add `2024/08/02`  
+BOOK-WALKERのセール情報を取得するPython。  
+Googleスプレットシートに出力されます。  
+
+```csv
+タイトル,著者,価格,レーベル,終了日
+```
+
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
+
+**chenge log:**  
+`2024/08/02`:金額を数値として取得できるようにした。
+
+### DMM_PurchhaseList.py
+
+`Add 2024/07/27`  
+DMMの購入履歴を取得するPython。  
+csvファイルに出力されます。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/DMM_PurchaseList](https://github.com/shirafukayayoi/DMM_PurchaseList)  
+実行結果はこんな感じ。  
+
+```csv
+タイトル,サークル名,ジャンル
+タイトル,サークル名,ジャンル
+タイトル,サークル名,ジャンル
+```
+
+**chenge log:**  
+`2024/07/28`:GoogleSheetに出力するようにした。
+
+### GoogleCalendarTemplate.py
+
+`Add 2024/07/29`  
+GoogleCalendarに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とカレンダーID。  
+**TemplateList:**
+
+- イベントを追加する
+- イベントを取得する
+
+### GoogleSheetTemplate.py
+
+`Add 2024/07/28`  
+GoogleSheetに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とスプレットシートID。  
+**TemplateList:**  
+
+- スプレットシートのデータを読み込む
+- スプレットシートのすべてのデータを消す
+- スプレットシートにデータを書き込む
+- スプレットシートに1行目だけ書き込む
+- フィルターを設定する
 
 ### ImportOS_DirectoryText.py
 
@@ -43,6 +124,17 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 **chenge log:**  
 `2021/07/17`:cmdからディレクトリを入力できるようにした。
 
+### LightNovel_GoogleCalendarPush.py
+
+`Add 2024/07/11`  
+楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
+`year`と`month`、`calendar_id`を入れ、`target_media`にGoogleカレンダーに追加したい出版社を入れ実行。  
+実行結果はこんな感じ。
+![image](./image/LightNovel_GoogleCalendarPush.png)
+詳しくは、このレポジトリと、Zennを見てください。  
+[https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
+[https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
+
 ### PDF_PasswordCancellation.py
 
 `Add 2024/06/28`  
@@ -64,64 +156,12 @@ PythonやNode.jsを使っているので、そのプログラムを置いてお�
 **Chenge Log:**  
 `2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
 
-### LightNovel_GoogleCalendarPush.py
-
-`Add 2024/07/11`  
-楽天のブックスから指定した月のラノベの情報を読み取り、Googleカレンダーに予定を追加させるPython。  
-`year`と`month`、`calendar_id`を入れ、`target_media`にGoogleカレンダーに追加したい出版社を入れ実行。  
-実行結果はこんな感じ。
-![image](./image/LightNovel_GoogleCalendarPush.png)
-詳しくは、このレポジトリと、Zennを見てください。  
-[https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
-[https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
-
 ### RandamNumber.py
 
 `Add 2024/07/16`  
 簡単な数あてゲーム。  
 実行結果はこんな感じ。  
 ![image](./image/RandamNumber.png)
-
-### AutoFolderUnzip.py
-
-`Add 2024/07/17`  
-フォルダ内のzipファイルを解凍するPython。  
-詳しくはこのレポジトリを見てください。  
-[https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
-
-### DMM_PurchhaseList.py
-
-`Add 2024/07/27`  
-DMMの購入履歴を取得するPython。  
-csvファイルに出力されます。  
-詳しくはこのレポジトリを見てください。  
-[https://github.com/shirafukayayoi/DMM_PurchaseList](https://github.com/shirafukayayoi/DMM_PurchaseList)  
-実行結果はこんな感じ。  
-
-```csv
-タイトル,サークル名,ジャンル
-タイトル,サークル名,ジャンル
-タイトル,サークル名,ジャンル
-```
-
-**chenge log:**  
-`2024/07/28`:GoogleSheetに出力するようにした。
-
-### BOOK-WALKER_Sale_Information.py
-
-Add `2024/08/02`  
-BOOK-WALKERのセール情報を取得するPython。  
-Googleスプレットシートに出力されます。  
-
-```csv
-タイトル,著者,価格,レーベル,終了日
-```
-
-詳しくはこのレポジトリを見てください。  
-[https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
-
-**chenge log:**  
-`2024/08/02`:金額を数値として取得できるようにした。
 
 ### RSS_Notification.py
 
@@ -132,45 +172,3 @@ RSSフィードを取得して、新しい記事があれば通知するPython�
 ```text
 title,URL
 ```
-
-## Python-Templates
-
-### GoogleSheetTemplate.py
-
-`Add 2024/07/28`  
-GoogleSheetに接続するためのテンプレート。  
-必要になるのは、`credentials.json`とスプレットシートID。  
-**TemplateList:**  
-
-- スプレットシートのデータを読み込む
-- スプレットシートのすべてのデータを消す
-- スプレットシートにデータを書き込む
-- スプレットシートに1行目だけ書き込む
-- フィルターを設定する
-
-### GoogleCalendarTemplate.py
-
-`Add 2024/07/29`  
-GoogleCalendarに接続するためのテンプレート。  
-必要になるのは、`credentials.json`とカレンダーID。  
-**TemplateList:**
-
-- イベントを追加する
-- イベントを取得する
-
-## Node.js
-
-### Node_fb2kRichPresence.js
-
-`Add 2024/06/11`  
-foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生バーと動画のURLボタンを付けるやつ。  
-実行結果はこんな感じ。  
-![image](./image/Node_fb2kRichPresence.png)  
-詳しくはこのレポジトリを見てください。  
-[https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
-
-### PuppeteerDocs.js
-
-`Add 2024/07/21`  
-Puppeteerの基本的な使い方ををまとめたNode.js。  
-詳しくはコード内のコメントを見てください。  
