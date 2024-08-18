@@ -30,7 +30,7 @@ class GoogleSpreadsheet:
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
         self.authenticate()
 
-    # 
+    # Google DriveとSheetsの認証
     def authenticate(self):
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
