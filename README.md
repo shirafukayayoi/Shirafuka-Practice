@@ -72,28 +72,12 @@ csvファイルに出力されます。
 **chenge log:**  
 `2024/07/28`:GoogleSheetに出力するようにした。
 
-### GoogleCalendarTemplate.py
+### Gboard_FormatText.py
 
-`Add 2024/07/29`  
-GoogleCalendarに接続するためのテンプレート。  
-必要になるのは、`credentials.json`とカレンダーID。  
-**TemplateList:**
-
-- イベントを追加する
-- イベントを取得する
-
-### GoogleSheetTemplate.py
-
-`Add 2024/07/28`  
-GoogleSheetに接続するためのテンプレート。  
-必要になるのは、`credentials.json`とスプレットシートID。  
-**TemplateList:**  
-
-- スプレットシートのデータを読み込む
-- スプレットシートのすべてのデータを消す
-- スプレットシートにデータを書き込む
-- スプレットシートに1行目だけ書き込む
-- フィルターを設定する
+`Add 2024/08/19`  
+PC版のGboardをスマホでも使えるようにするためのPython。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/Gboard_FomatText](https://github.com/shirafukayayoi/Gboard_FomatText)
 
 ### ImportOS_DirectoryText.py
 
@@ -172,3 +156,28 @@ RSSフィードを取得して、新しい記事があれば通知するPython�
 ```text
 title,URL
 ```
+
+## Template-Python
+
+### GoogleCalendarTemplate.py
+
+`Add 2024/07/29`  
+GoogleCalendarに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とカレンダーID。  
+**TemplateList:**
+
+- イベントを追加する
+- イベントを取得する
+
+### GoogleSheetTemplate.py
+
+`Add 2024/07/28`  
+GoogleSheetに接続するためのテンプレート。  
+必要になるのは、`credentials.json`とスプレットシートID。  
+**TemplateList:**  
+
+- スプレットシートのデータを読み込む
+- スプレットシートのすべてのデータを消す
+- スプレットシートにデータを書き込む
+- スプレットシートに1行目だけ書き込む
+- フィルターを設定する
