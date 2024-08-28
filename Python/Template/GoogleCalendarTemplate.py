@@ -5,6 +5,7 @@ from google.auth.transport.requests import Request
 import os
 import datetime
 from dotenv import load_dotenv
+import pandas as pd
 
 load_dotenv()
 
@@ -12,7 +13,7 @@ def main():
     Calendar_id = os.environ["TEMPLATE_GOOGLE_CALENDAR_ID"]
 
     google_calendar = GoogleCalendar()   # initを実行するために必要
-    google_calendar.Add_event(Calendar_id)
+    google_calendar.Add_event_from_csv(Calendar_id)
 
 class GoogleCalendar:
     def __init__(self):
@@ -77,6 +78,30 @@ class GoogleCalendar:
             body=event
         ).execute()
         print("イベントを追加しました")
+    
+    # CSVファイルからイベントを追加する
+    def Add_event_from_csv(self, Calendar_id):
+        """タイトル,詳細,日付"""
+        csv_file = input("CSVファイルのパスを入力してください: ")
+        df = pd.read_csv(csv_file)
+        for index, row in df.iterrows():
+            event = {
+                'summary': row['タイトル'],
+                'description': row['詳細'],
+                'start': {
+                    'date': row['日付'],
+                    'timeZone': 'Asia/Tokyo'
+                },
+                'end': {
+                    'date': row['日付'],
+                    'timeZone': 'Asia/Tokyo'
+                },
+            }
+            self.service.events().insert(
+                calendarId= Calendar_id,
+                body=event
+            ).execute()
+            print(f"{row['タイトル']}を追加しました")
 
 if __name__ == '__main__':
     main()

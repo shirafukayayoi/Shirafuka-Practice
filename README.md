@@ -173,6 +173,7 @@ GoogleCalendarに接続するためのテンプレート。
 
 - イベントを追加する
 - イベントを取得する
+- CSVファイルからイベントを追加する
 
 ### GoogleSheetTemplate.py
 
