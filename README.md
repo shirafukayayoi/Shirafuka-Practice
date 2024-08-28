@@ -157,6 +157,11 @@ RSSフィードを取得して、新しい記事があれば通知するPython�
 title,URL
 ```
 
+### Tesseract_OCR.py
+
+`Add 2024/08/28`  
+Tesseractを使って画像から文字を取得するPython。  
+
 ## Template-Python
 
 ### GoogleCalendarTemplate.py

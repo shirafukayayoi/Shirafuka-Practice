@@ -27,7 +27,7 @@ def main():
 class LightNovelEventManager:
     def __init__(self):
         self.year = 2024
-        self.month = 8
+        self.month = 9
         self.calendar_id = os.environ['LightNovel_GoogleCalendar_ID']
         self.discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
         self.creds = self.authenticate_google()

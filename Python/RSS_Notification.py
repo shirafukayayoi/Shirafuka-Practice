@@ -12,8 +12,11 @@ title = latest_article.title
 # 最新の記事のURLを取得
 link = latest_article.id
 
+published = latest_article.published
+
 # RSSのタイトルとURLを表示
 print(feed)
 print(f"----------------")
 print(title)
 print(link)
+print(published)

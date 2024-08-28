@@ -11,8 +11,7 @@ load_dotenv()
 def main():
     youtube_url = input("YouTube動画のURLを入力してください: ")
     youtube = YoutubeTemplate(youtube_url)
-    title, live_broadcast_content, scheduled_start_time_tokyo = youtube.get_scheduled_live_info()
-    print(title, live_broadcast_content, scheduled_start_time_tokyo)
+    youtube.get_scheduled_live_info()
 
 class YoutubeTemplate:
     def __init__(self, youtube_url):
@@ -70,8 +69,7 @@ class YoutubeTemplate:
                 print("予定開始時間が見つかりません。")
         else:
             print(f"タイトル: {title}\n更新日: {published_at}\nこの動画は配信予定のライブではありません。")
-    
-        return title, live_broadcast_content, scheduled_start_time_tokyo
+
 
 if __name__ == "__main__":
     main()

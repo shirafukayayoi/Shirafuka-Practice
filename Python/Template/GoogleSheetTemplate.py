@@ -11,8 +11,8 @@ load_dotenv()
 
 def main():
     spreadsheet = GoogleSpreadsheet()
-    spreadsheet.get_drive_service()
-    spreadsheet.create_spreadsheet('sample_spread')
+    spreadsheet.read_data()
+
 class GoogleSpreadsheet:
     SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
 
