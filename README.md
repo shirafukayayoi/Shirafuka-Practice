@@ -162,6 +162,12 @@ title,URL
 `Add 2024/08/28`  
 Tesseractを使って画像から文字を取得するPython。  
 
+### yt-dlp_dowroad.py
+
+`Add 2024/08/31`  
+yt-dlpを使って動画をダウンロードするPython。  
+今のオプションは最高画質&最高音質。
+
 ## Template-Python
 
 ### GoogleCalendarTemplate.py
