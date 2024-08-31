@@ -1,15 +1,15 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 import time
-import csv
 from datetime import datetime
 from dotenv import load_dotenv
 import os
-import requests
-import json
 import gspread
 from google.oauth2.service_account import Credentials
+import discord
+import sys
 
 # .envファイルの読み込み
 load_dotenv()
@@ -18,22 +18,15 @@ def main():
     # 環境変数の読み込みを確認
     email = os.environ["DMM_EMAIL"]
     password = os.environ["DMM_PASSWORD"]
-    discord_webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
     sheet_url = os.environ["DMM_GOOGLE_SHEET_URL"]
-    
-    if not email or not password or not discord_webhook_url:
-        print("環境変数が正しく読み込まれていません。")
-        print(f"DMM_EMAIL: {email}")
-        print(f"DMM_PASSWORD: {password}")
-        print(f"DISCORD_WEBHOOK_URL: {discord_webhook_url}")
-        return
 
     today = datetime.now().strftime("%Y-%m-%d")     # 今日の日付を取得（ファイル名に入れるため）
     login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
-    csv_title = f"DMM_{today}_PURCHASED_LIST.csv"
     count = 0
 
-    driver = webdriver.Chrome()
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=chrome_options)
     
     dmm_login = DMMLogin(driver, login_url, email, password)
     dmm_login.login()   # ログイン関数の実行
@@ -42,17 +35,16 @@ def main():
     dmm_library.navigate_to_library()
     data = dmm_library.scroll_and_collect_data()    # 取得した値をdataに格納
 
-    csv_writer = CSVWriter(csv_title)
-    csv_writer.write_data(data)
-
     google_spreadsheet = GoogleSpreadsheet(sheet_url)    # クラスに値を渡す、initに渡すものがない場合は空でOK
-    google_spreadsheet.write_data(data, count)
+    count = google_spreadsheet.write_data(data, count)   # countを戻り値として受け取る
     google_spreadsheet.AutoFilter()
 
-    discord = discord_send_message(discord_webhook_url)
-    discord.send_message(f"DMMの購入リストを{count}回取得、書き込みました: {csv_title}")
-    
+    token = os.environ["DISCORD_TOKEN"]  # トークンを環境変数などから取得するのがベスト
+    discord_bot = DiscordBOT(token)
+    discord_bot.run(sheet_url)  # メッセージを送信し、Botを実行します
+
     driver.quit()
+    sys.exit()
 
 class DMMLogin:
     def __init__(self, driver, login_url, email, password):
@@ -82,8 +74,8 @@ class DMMLogin:
         
         try:
             time.sleep(3)
-            login_button = self.driver.find_element(By.XPATH, '//input[@value="ログイン"]')
-            login_button.click()
+            login_button = self.driver.find_element(By.XPATH, '//button[text()="ログイン"]')
+            self.driver.execute_script("arguments[0].click();", login_button)
             print("フォームを送信しました")
         except Exception as e:
             print(f"フォームの送信に失敗しました: {e}")
@@ -135,61 +127,30 @@ class DMMLibrary:
             print(title, circle, kind)
 
         return data
-    
-class CSVWriter:
-    def __init__(self, filename):
-        self.filename = filename
-
-    def write_data(self, data):
-        with open(self.filename, "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["タイトル", "サークル", "種類"])
-            writer.writerows(data)
-
-class discord_send_message:
-    def __init__(self, discord_webhook_url):
-        self.discord_webhook_url = discord_webhook_url
-
-    def send_message(self, message):
-        headers = {
-            "Content-Type": "application/json"
-        }
-        data = {
-            "content": message
-        }
-        response = requests.post(self.discord_webhook_url, headers=headers, data=json.dumps(data))
-        print(response.status_code)
 
 class GoogleSpreadsheet:
-    def __init__(self,sheet_url):
-        self.scope = ['https://spreadsheets.google.com/feeds',
-                        'https://www.googleapis.com/auth/drive']
-        self.creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.scope)
+    def __init__(self, sheet_url):
+        self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        self.creds = Credentials.from_service_account_file('credentials.json', scopes=self.scope)
         self.client = gspread.authorize(self.creds)
-        self.spreadsheet = self.client.open_by_url(sheet_url)
+        self.spreadsheet = self.client.open_by_key(sheet_url)
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
-        print("Google Spreadsheetに接続しました")
 
-    # Googleスプレッドシートにデータを書き込む
     def write_data(self, data, count):
         self.sheet.clear()
         self.sheet.insert_row(["タイトル", "サークル", "種類"], 1)
         for row in data:
-            time.sleep(3)
+            time.sleep(1)
             count += 1
             self.sheet.append_row(row)
             print(row)
-            return count
-
         print(f"{count}回データを書き込みました。")
-    
-    # フィルターの設定
+        return count
+
     def AutoFilter(self):
-        # 最終列の数値を取得
         last_column_num = len(self.sheet.row_values(1))
         print(f"最終列は{last_column_num}です")
         
-        # 数値からアルファベットを求める内部関数
         def num2alpha(num):
             if num <= 26:
                 return chr(64 + num)
@@ -198,11 +159,36 @@ class GoogleSpreadsheet:
             else:
                 return num2alpha(num // 26) + chr(64 + num % 26)
         
-        # 最終列を数値→アルファベットへ変換
         last_column_alp = num2alpha(last_column_num)
         print(f'最終列のアルファベットは{last_column_alp}です')
-        self.sheet.set_basic_filter(name=(f'A:{last_column_alp}'))
+        self.sheet.set_basic_filter(f'A:{last_column_alp}')
         print("フィルターを設定しました")
 
-    if __name__ == "__main__":
-        main()
+class DiscordBOT:
+    def __init__(self, token):
+        self.token = token
+        self.channel_id = "1266540948460933190"
+
+        # Intents を設定
+        self.intents = discord.Intents.default()
+        self.intents.message_content = True  # メッセージの内容を受け取るための設定
+
+        self.bot = discord.Client(intents=self.intents)
+
+    async def send_message(self, message):
+        channel = self.bot.get_channel(int(self.channel_id))
+        if channel:
+            await channel.send(message)
+            print("メッセージを送信しました")
+        else:
+            print("チャンネルが見つかりませんでした")
+
+    def run(self, sheet_url):
+        @self.bot.event
+        async def on_ready():
+            print(f'Logged in as {self.bot.user} (ID: {self.bot.user.id})')
+            await self.send_message(f"DMMの購入リストを取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{sheet_url}")
+        self.bot.run(self.token)
+
+if __name__ == "__main__":
+    main()
