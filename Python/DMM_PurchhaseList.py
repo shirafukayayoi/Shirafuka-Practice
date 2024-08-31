@@ -26,6 +26,7 @@ def main():
 
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(options=chrome_options)
     
     dmm_login = DMMLogin(driver, login_url, email, password)
