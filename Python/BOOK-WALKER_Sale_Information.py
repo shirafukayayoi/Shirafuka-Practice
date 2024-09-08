@@ -15,7 +15,8 @@ import time
 from dotenv import load_dotenv
 import os
 import requests
-import json
+import discord
+import sys
 
 load_dotenv()
 
@@ -33,8 +34,10 @@ def main():
         spreadsheet.get_drive_service()
         spreadsheet.create_spreadsheet(Filetitle, data, count, folder_id)
         spreadsheet.AutoFilter()
-        discord = discord_send_message()
-        discord.send_message(f"BookWalkerのセール情報をGoogleスプレットシートに書き込みました:\nhttps://docs.google.com/spreadsheets/d/{spreadsheet.spreadsheet_id}")
+        sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet.spreadsheet_id}"
+        discord_bot = DiscordBOT(os.environ['DISCORD_TOKEN'])
+        discord_bot.run(sheet_url, count)
+    sys.exit()
 
 class WebScraping:
     def __init__(self):
@@ -251,18 +254,31 @@ class GoogleSpreadsheet:
         self.sheet.set_basic_filter(name=(f'A:{last_column_alp}'))
         print("フィルターを設定しました")
     
-class discord_send_message:
-    def __init__(self):
-        self.discord_webhook_url = os.environ['DISCORD_WEBHOOK_URL']
+class DiscordBOT:
+    def __init__(self, token):
+        self.token = token
+        self.channel_id = "1279375531992682556"
 
-    def send_message(self, message):
-        headers = {
-            "Content-Type": "application/json"
-        }
-        data = {
-            "content": message
-        }
-        response = requests.post(self.discord_webhook_url, headers=headers, data=json.dumps(data))
-        print(response.status_code)
+        # Intents を設定
+        self.intents = discord.Intents.default()
+        self.intents.message_content = True  # メッセージの内容を受け取るための設定
+
+        self.bot = discord.Client(intents=self.intents)
+
+    async def send_message(self, message):
+        channel = self.bot.get_channel(int(self.channel_id))
+        if channel:
+            await channel.send(message)
+            print("メッセージを送信しました")
+        else:
+            print("チャンネルが見つかりませんでした")
+
+    def run(self, sheet_url, count):
+        @self.bot.event
+        async def on_ready():
+            print(f'Logged in as {self.bot.user} (ID: {self.bot.user.id})')
+            await self.send_message(f"BOOK☆WALKERのセールリストを取得、{count}回書き込みました:\n{sheet_url}")
+        self.bot.run(self.token)
+
 if __name__ == "__main__":
     main()
