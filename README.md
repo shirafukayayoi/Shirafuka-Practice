@@ -40,7 +40,7 @@ Puppeteerの基本的な使い方をまとめたNode.js。
 
 ### BOOK-WALKER_Sale_Information.py
 
-Add `2024/08/02`  
+`Add 2024/08/02`  
 BOOK-WALKERのセール情報を取得するPython。  
 Googleスプレットシートに出力されます。  
 
@@ -53,6 +53,13 @@ Googleスプレットシートに出力されます。
 
 **chenge log:**  
 `2024/08/02`:金額を数値として取得できるようにした。
+
+### Bookmeter_LoadBookList.py
+
+`Add 2024/09/08`  
+[読書メーター](https://bookmeter.com/)に登録されている、積読本、または読んだ本をcsv形式で出力するpython。  
+使い方はこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/Bookmeter_LoadBookList](https://github.com/shirafukayayoi/Bookmeter_LoadBookList)
 
 ### DMM_PurchhaseList.py
 
