@@ -9,12 +9,12 @@ import os
 import gspread
 from google.oauth2.service_account import Credentials
 import discord
-import sys
+import asyncio
 
 # .envファイルの読み込み
 load_dotenv()
 
-def main():
+async def main():
     # 環境変数の読み込みを確認
     email = os.environ["DMM_EMAIL"]
     password = os.environ["DMM_PASSWORD"]
@@ -34,6 +34,7 @@ def main():
     dmm_library = DMMLibrary(driver)    # initにdriverを渡す
     dmm_library.navigate_to_library()
     data = dmm_library.scroll_and_collect_data()    # 取得した値をdataに格納
+    driver.quit()
 
     google_spreadsheet = GoogleSpreadsheet(sheet_url)    # クラスに値を渡す、initに渡すものがない場合は空でOK
     count = google_spreadsheet.write_data(data, count)   # countを戻り値として受け取る
@@ -43,8 +44,6 @@ def main():
     discord_bot = DiscordBOT(token)
     discord_bot.run(sheet_url)  # メッセージを送信し、Botを実行します
 
-    driver.quit()
-    sys.exit()
 
 class DMMLogin:
     def __init__(self, driver, login_url, email, password):
@@ -164,13 +163,22 @@ class GoogleSpreadsheet:
 class DiscordBOT:
     def __init__(self, token):
         self.token = token
-        self.channel_id = "1266540948460933190"
+        self.channel_id = "1279064814697713664"
 
         # Intents を設定
         self.intents = discord.Intents.default()
         self.intents.message_content = True  # メッセージの内容を受け取るための設定
 
         self.bot = discord.Client(intents=self.intents)
+
+        # イベントハンドラーを設定
+        self.bot.event(self.on_ready)
+
+    # 非同期関数として on_ready を定義
+    async def on_ready(self):
+        print(f'Logged in as {self.bot.user} (ID: {self.bot.user.id})')
+        await self.send_message(f"DMMの購入リストを取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{self.spreadsheet_id}")
+        await self.bot.close()  # ボットを終了する
 
     async def send_message(self, message):
         channel = self.bot.get_channel(int(self.channel_id))
@@ -180,12 +188,9 @@ class DiscordBOT:
         else:
             print("チャンネルが見つかりませんでした")
 
-    def run(self, sheet_url):
-        @self.bot.event
-        async def on_ready():
-            print(f'Logged in as {self.bot.user} (ID: {self.bot.user.id})')
-            await self.send_message(f"DMMの購入リストを取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{sheet_url}")
-        self.bot.run(self.token)
+    async def run(self, sheet_url):
+        self.spreadsheet_id = sheet_url
+        await self.bot.start(self.token)  # 非同期処理としてボットを開始
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())

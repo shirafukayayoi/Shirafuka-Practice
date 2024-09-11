@@ -9,12 +9,24 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
 import gspread
+import discord
+from dotenv import load_dotenv
+import os
+import asyncio
 
-def main():
-    url = "https://bookmeter.com/users/1291485/books/stacked"
+load_dotenv()
+
+async def main():
+    url = input("読書メーターのURLを入力してください: ")
     spreadsheet_id = "1BaWrynhH4oYqd1UcmKeGTN81fC_huPHbLGXcl06nIRQ"
+
     web_scraping = WebScraping(url, spreadsheet_id)
     web_scraping.get_html()
+
+    token = os.getenv("DISCORD_TOKEN")
+    discord_bot = DiscordBOT(token)
+    await discord_bot.run(spreadsheet_id)
+
 class WebScraping:
     def __init__(self, url, spreadsheet_id):
         self.url = url
@@ -118,7 +130,6 @@ class WebScraping:
             self.spreadsheet.write_data(data)
             print(title, authors, page_number, links)
         self.spreadsheet.AutoFilter(self.spreadsheet.spreadsheet.id)
-        return self.data
 
 class GoogleSpreadsheet:
     def __init__(self, url, spreadsheet_id):
@@ -148,5 +159,38 @@ class GoogleSpreadsheet:
         print(f'最後の列: {last_column_alp}')  # デバッグ用出力
         sheet.set_basic_filter(f'A1:{last_column_alp}1')  # 範囲を指定してフィルター設定
 
+class DiscordBOT:
+    def __init__(self, token):
+        self.token = token
+        self.channel_id = "1279064814697713664"
+
+        # Intents を設定
+        self.intents = discord.Intents.default()
+        self.intents.message_content = True  # メッセージの内容を受け取るための設定
+
+        self.bot = discord.Client(intents=self.intents)
+
+        # イベントハンドラーを設定
+        self.bot.event(self.on_ready)
+
+    # 非同期関数として on_ready を定義
+    async def on_ready(self):
+        booktype = "積読本" if 'stacked' in self.spreadsheet_id else "読んだ本"
+        print(f'Logged in as {self.bot.user} (ID: {self.bot.user.id})')
+        await self.send_message(f"{booktype}を取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{self.spreadsheet_id}")
+        await self.bot.close()  # ボットを終了する
+
+    async def send_message(self, message):
+        channel = self.bot.get_channel(int(self.channel_id))
+        if channel:
+            await channel.send(message)
+            print("メッセージを送信しました")
+        else:
+            print("チャンネルが見つかりませんでした")
+
+    async def run(self, spreadsheet_id):
+        self.spreadsheet_id = spreadsheet_id
+        await self.bot.start(self.token)  # 非同期処理としてボットを開始
+
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
