@@ -2,16 +2,21 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import csv
+import pickle
+import os.path
+from googleapiclient.discovery import build
+from google_auth_oauthlib.flow import InstalledAppFlow
+from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials
+import gspread
 
 def main():
     url = "https://bookmeter.com/users/1291485/books/stacked"
-    web_scraping = WebScraping(url)
-    data = web_scraping.get_html()
-    csv_writer = CSVwriter(data)
-    csv_writer.write_csv()
-
+    spreadsheet_id = "1BaWrynhH4oYqd1UcmKeGTN81fC_huPHbLGXcl06nIRQ"
+    web_scraping = WebScraping(url, spreadsheet_id)
+    web_scraping.get_html()
 class WebScraping:
-    def __init__(self, url):
+    def __init__(self, url, spreadsheet_id):
         self.url = url
         self.session = requests.Session()  # Sessionオブジェクトを初期化
         self.headers = {
@@ -19,6 +24,7 @@ class WebScraping:
         }
         self.data = []
         self.all_links = []
+        self.spreadsheet = GoogleSpreadsheet(url, spreadsheet_id)
         
     def get_html(self):
         # 初回リクエスト処理
@@ -47,7 +53,7 @@ class WebScraping:
         
         # 各ページのリンクを取得して処理
         for i in range(1, int(last_page_number) + 1):
-            page_url = f"https://bookmeter.com/users/1291485/books/stacked?page={i}"
+            page_url = self.url + f"?page={i}"
             
             # リトライ処理の統合
             for attempt in range(3):  # 最大3回リトライ
@@ -102,26 +108,45 @@ class WebScraping:
             authors = authors_elements[0].text if authors_elements else "著者不明"  # authors_elements[0].textで取得、なかった場合はelse
 
             # ページ数を取得するロジック
-            page_number = html_soup.find('dt', text='ページ数').find_next_sibling('dd').find('span').text
+            page_number = int(html_soup.find('dt', string='ページ数').find_next_sibling('dd').find('span').text)
 
             # リンク処理の修正
             link_samples = [a['href'] for a in html_soup.find_all('a', href=True) if 'bookwalker.jp' in a['href']]
             links = link_samples[0].split('?')[0] if link_samples else ""  # 最初のリンクのみを処理
 
-            self.data.append((title, authors, page_number, links))
-
+            data = [title, authors, page_number, links]
+            self.spreadsheet.write_data(data)
             print(title, authors, page_number, links)
+        self.spreadsheet.AutoFilter(self.spreadsheet.spreadsheet.id)
         return self.data
 
-class CSVwriter:
-    def __init__(self, data):
-        self.data = data
+class GoogleSpreadsheet:
+    def __init__(self, url, spreadsheet_id):
+        self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        self.creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.scope)
+        self.client = gspread.authorize(self.creds)
+        self.spreadsheet = self.client.open_by_key(spreadsheet_id)
+        self.sheet = self.spreadsheet.get_worksheet(1) if 'stacked' in url else self.spreadsheet.sheet1
+        self.sheet.clear()
+        self.sheet.insert_row(["タイトル", "著者", "ページ数", "URL"], 1)
+    
+    def write_data(self, data):
+        self.sheet.append_rows([data])
 
-    def write_csv(self):
-        with open("bookmeter_data.csv", "w", newline="", encoding="utf-8") as f:
-            writer = csv.writer(f)
-            writer.writerow(["タイトル", "著者", "ページ数", "URL"])
-            writer.writerows(self.data)
+    def AutoFilter(self, spreadsheet_id):
+        sheet = self.client.open_by_key(spreadsheet_id).sheet1
+        last_column_num = len(sheet.row_values(1))  # 列数を取得
+
+        def num2alpha(num):
+            alphabet = ''
+            while num > 0:
+                num, remainder = divmod(num - 1, 26)
+                alphabet = chr(65 + remainder) + alphabet
+            return alphabet
+
+        last_column_alp = num2alpha(last_column_num)  # 列をアルファベットに変換
+        print(f'最後の列: {last_column_alp}')  # デバッグ用出力
+        sheet.set_basic_filter(f'A1:{last_column_alp}1')  # 範囲を指定してフィルター設定
 
 if __name__ == "__main__":
     main()

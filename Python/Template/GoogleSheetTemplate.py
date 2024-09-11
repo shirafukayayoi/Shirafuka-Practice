@@ -13,62 +13,57 @@ def main():
     spreadsheet = GoogleSpreadsheet()
     spreadsheet.read_data()
 
+# スプレッドシートだけを扱うクラス
 class GoogleSpreadsheet:
+    def __init__(self, spreadsheet_id):
+        self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        self.creds = Credentials.from_service_account_file('credentials.json', scopes=self.scope)
+        self.client = gspread.authorize(self.creds)
+        self.spreadsheet = self.client.open_by_key(spreadsheet_id)
+        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+
+class GoogleSpreadsheet_Drive:
     SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
 
     def __init__(self, token_path='token.pickle', credentials_path='client_secret.json'):
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.sheet_creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.SCOPES)
-        self.creds = None
-        self.drive = None
-        self.sheets = None
-        self.client = None
         self.sheetclient = gspread.authorize(self.sheet_creds)
+        self.spreadsheet = self.sheetclient.open_by_url(os.environ["TEMPLETE_GOOGLE_SHEET_URL"])
+        self.sheet = self.spreadsheet.sheet1
+        self.drive, self.sheets = self.authenticate_and_init_services()
 
-        self.spreadsheet = self.sheetclient.open_by_url(os.environ["TEMPLETE_GOOGLE_SHEET_URL"])    # または、open_by_key('スプレッドシートキー')を使う
-        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
-        self.authenticate()
-
-    # Google DriveとSheetsの認証
-    def authenticate(self):
+    def authenticate_and_init_services(self):
+        """認証とサービス初期化を1つにまとめたメソッド"""
+        creds = None
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
-                self.creds = pickle.load(token)
-
-        if not self.creds or not self.creds.valid:
-            if self.creds and self.creds.expired and self.creds.refresh_token:
-                self.creds.refresh(Request())
-            elif os.path.exists(self.credentials_path):
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_path, self.SCOPES)
-                self.creds = flow.run_local_server(port=0)
+                creds = pickle.load(token)
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, self.SCOPES)
+            creds = flow.run_local_server(port=0)
             with open(self.token_path, 'wb') as token:
-                pickle.dump(self.creds, token)
+                pickle.dump(creds, token)
 
-        if self.creds and self.creds.valid:
-            self.drive = build('drive', 'v3', credentials=self.creds)
-            self.sheets = build('sheets', 'v4', credentials=self.creds)
-            self.client = gspread.authorize(self.creds)
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+
+        if creds and creds.valid:
+            drive = build('drive', 'v3', credentials=creds)
+            sheets = build('sheets', 'v4', credentials=creds)
+            return drive, sheets
         else:
             print('Drive or Sheets auth failed.')
+            return None, None
 
     def get_drive_service(self):
-        """Google Drive APIのサービスインスタンスを返すメソッド"""
-        if self.drive:
-            return self.drive
-        else:
-            print('Drive service is not available.')
-            return None
+        return self.drive if self.drive else print('Drive service is not available.')
 
     def get_sheets_service(self):
-        """Google Sheets APIのサービスインスタンスを返すメソッド"""
-        if self.sheets:
-            return self.sheets
-        else:
-            print('Sheets service is not available.')
-            return None
+        return self.sheets if self.sheets else print('Sheets service is not available.')
 
+    # Googleスプレッドシートを作成する
     def create_spreadsheet(self, title):
         if not self.sheets:
             print('Sheets service is not available.')

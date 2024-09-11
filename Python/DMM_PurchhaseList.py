@@ -26,7 +26,6 @@ def main():
 
     chrome_options = Options()
     chrome_options.add_argument("--no-sandbox")
-    chrome_options.add_argument("--headless")
     driver = webdriver.Chrome(options=chrome_options)
     
     dmm_login = DMMLogin(driver, login_url, email, password)
@@ -123,16 +122,13 @@ class DMMLibrary:
 
         length = min(len(titles), len(circles), len(kinds))
         data = [(titles[i].text, circles[i].text, kinds[i].text) for i in range(length)]
-        
-        for title, circle, kind in data:
-            print(title, circle, kind)
 
         return data
 
 class GoogleSpreadsheet:
     def __init__(self, sheet_url):
         self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        self.creds = Credentials.from_service_account_file('credentials.json', scopes=self.scope)
+        self.creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.scope)
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(sheet_url)
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
