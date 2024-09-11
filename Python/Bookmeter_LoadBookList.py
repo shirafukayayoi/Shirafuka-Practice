@@ -1,97 +1,126 @@
-from selenium import webdriver
-from selenium.webdriver.common.by import By
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
+import requests
+from bs4 import BeautifulSoup
 import time
 import csv
 
 def main():
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=chrome_options)
-
-    bookmeter = BookMeterLogin(driver)
-    data = bookmeter.GetBooks()
-    csv_writer = CSVWriter(data)
+    url = "https://bookmeter.com/users/1291485/books/stacked"
+    web_scraping = WebScraping(url)
+    data = web_scraping.get_html()
+    csv_writer = CSVwriter(data)
     csv_writer.write_csv()
 
-class BookMeterLogin:
-    def __init__(self, driver):
-        self.driver = driver
-        self.login_url = "https://bookmeter.com/users/1291485/books/stacked"
-
-    def GetBooks(self):
-        self.driver.get(self.login_url)
-        self.driver.set_window_size(1000, 1000)  # ウィンドウサイズを指定
-
+class WebScraping:
+    def __init__(self, url):
+        self.url = url
+        self.session = requests.Session()  # Sessionオブジェクトを初期化
+        self.headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.102 Safari/537.36'
+        }
+        self.data = []
+        self.all_links = []
+        
+    def get_html(self):
+        # 初回リクエスト処理
         try:
-            last_page_element = WebDriverWait(self.driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, "/html/body/div[1]/div[1]/section/div/ul/li[last()]/a"))
-            )
-            last_page_url = last_page_element.get_attribute("href")
-            last_page = int(last_page_url.split("=")[-1])
-            print(f"最終ページ: {last_page}")
-        except Exception as e:
-            print(f"最終ページ取得エラー: {e}")
-            last_page = 1  # エラー時はデフォルトで1ページとする
+            req = self.session.get(self.url, headers=self.headers)
+            req.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(f"初回リクエストでエラーが発生しました: {e}")
+            return
 
-        all_links = []  # リンクを全て追加するリスト
+        req.encoding = req.apparent_encoding
+        html_soup = BeautifulSoup(req.text, "html.parser")
 
-        for i in range(1, last_page + 1):
+        # ページリンクの取得
+        try:
+            pagination_links = html_soup.find_all('a', class_="bm-pagination__link")
+            last_page_link = pagination_links[-1].get('href')
+
+            if 'page=' in last_page_link:
+                last_page_number = last_page_link.split('page=')[-1]
+            else:
+                print("ページ番号が見つかりませんでした")
+        except Exception:
+            print("ページリンクの取得に失敗しました")
+            return
+        
+        # 各ページのリンクを取得して処理
+        for i in range(1, int(last_page_number) + 1):
+            page_url = f"https://bookmeter.com/users/1291485/books/stacked?page={i}"
+            
+            # リトライ処理の統合
+            for attempt in range(3):  # 最大3回リトライ
+                try:
+                    req = self.session.get(page_url, headers=self.headers)
+                    req.raise_for_status()
+                    break  # 成功したらループを抜ける
+                except requests.exceptions.RequestException as e:
+                    print(f"ページリクエストでエラーが発生しました: {e}")
+                    if attempt < 2:  # リトライの余地があれば待機
+                        print(f"5秒後に再試行します...")
+                        time.sleep(5)
+                    else:
+                        print("最大試行回数に達しました。次のページに進みます。")
+                        req = None
+                        break
+
+            if req is None:
+                continue  # リトライ後も失敗した場合は次のページへ
+
+            req.encoding = req.apparent_encoding
+            page_soup = BeautifulSoup(req.text, "html.parser")
+            
+            # <div class="detail__title"> 内の <a> タグを探す
+            detail_divs = page_soup.find_all('div', class_="detail__title")
+
+            for div in detail_divs:
+                a_tag = div.find('a')
+                if a_tag and a_tag.get('href'):
+                    href = a_tag.get('href')
+                    base_link = "https://bookmeter.com" + href
+                    self.all_links.append(base_link)
+                else:
+                    print("hrefが存在しません")
+        
+        for link in self.all_links:
             try:
-                url = f"https://bookmeter.com/users/1291485/books/stacked?page={i}"
-                self.driver.get(url)
-                WebDriverWait(self.driver, 10).until(
-                    EC.presence_of_element_located((By.XPATH, "//div[@class='detail__title']/a"))
-                )
-                elements = self.driver.find_elements(By.XPATH, "//div[@class='detail__title']/a")
-                links = [element.get_attribute("href") for element in elements]
-                all_links.extend(links)  # リンクを全て追加
-            except Exception as e:
-                print(f"ページ {i} のリンク取得エラー: {e}")
+                time.sleep(5)
+                req = self.session.get(link, headers=self.headers)
+                req.raise_for_status()
+                req.encoding = req.apparent_encoding
+            except requests.exceptions.RequestException as e:
+                print(f"リンクリクエストでエラーが発生しました: {e}")
+                continue
+            html_soup = BeautifulSoup(req.text, "html.parser")
 
-        data = []  # データを格納するリストに変更
+            title_text = html_soup.find('h1', class_="inner__title")
+            if title_text:
+                title = title_text.text.split(' (', 1)[0]  # タイトル部分だけを取得
+            
+            authors_elements = html_soup.select('ul.header__authors a')  # 著者リンクのセレクタ
+            authors = authors_elements[0].text if authors_elements else "著者不明"  # authors_elements[0].textで取得、なかった場合はelse
 
-        for link in all_links:
-            time.sleep(5)
-            self.driver.get(link)
+            # ページ数を取得するロジック
+            page_number = html_soup.find('dt', text='ページ数').find_next_sibling('dd').find('span').text
 
-            titles_elements = self.driver.find_elements(By.CLASS_NAME, "inner__title")
-            titles_text = titles_elements[0].text if titles_elements else "タイトル不明"
-            try:
-                titles, _ = titles_text.split(' (', 1)
-            except ValueError:
-                titles = titles_text
+            # リンク処理の修正
+            link_samples = [a['href'] for a in html_soup.find_all('a', href=True) if 'bookwalker.jp' in a['href']]
+            links = link_samples[0].split('?')[0] if link_samples else ""  # 最初のリンクのみを処理
 
-            authors_elements = self.driver.find_elements(By.CSS_SELECTOR, "ul.header__authors a")
-            authors = ', '.join([element.text for element in authors_elements])
+            self.data.append((title, authors, page_number, links))
 
-            pages_elements = self.driver.find_elements(By.XPATH, "//dt[contains(text(), 'ページ数')]/following-sibling::dd/span[1]")
-            pages_text = ' '.join([element.text for element in pages_elements])
-            pages = ''.join(filter(str.isdigit, pages_text))
-            try:
-                links_elements = WebDriverWait(self.driver, 5).until(
-                    EC.presence_of_element_located((By.XPATH, f"//img[@alt='BOOK☆WALKER']/ancestor::a"))
-                )
-                links = links_elements.get_attribute("href")
-            except Exception:
-                print("リンクが見つかりません")
-                links = ""
+            print(title, authors, page_number, links)
+        return self.data
 
-            # データをリストに追加
-            data.append((titles, authors, pages, links, "積読本"))
-            print(titles, authors, pages, links)
-        return data
-
-class CSVWriter:
+class CSVwriter:
     def __init__(self, data):
         self.data = data
 
     def write_csv(self):
-        with open("bookmeter.csv", "w", newline="") as f:
+        with open("bookmeter_data.csv", "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
-            writer.writerow(["タイトル", "著者", "ページ数", "URL", "状態"])
+            writer.writerow(["タイトル", "著者", "ページ数", "URL"])
             writer.writerows(self.data)
 
 if __name__ == "__main__":
