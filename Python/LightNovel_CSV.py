@@ -2,9 +2,6 @@ import requests
 from bs4 import BeautifulSoup
 from urllib.parse import urlencode
 from datetime import datetime
-from dotenv import load_dotenv
-
-load_dotenv()
 
 def main():
     manager = LightNovelEventManager()
