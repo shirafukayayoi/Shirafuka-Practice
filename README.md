@@ -86,6 +86,12 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Gboard_FomatText](https://github.com/shirafukayayoi/Gboard_FomatText)
 
+### GigaFile.py
+
+`Add 2024/10/02`  
+指定したファイルを自動的に[GigaFile便](https://gigafile.nu)にアップロードするPython。  
+実行したらURLが出力されます。
+
 ### ImportOS_DirectoryText.py
 
 `Add 2024/06/03`  
@@ -114,6 +120,17 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 
 **chenge log:**  
 `2021/07/17`:cmdからディレクトリを入力できるようにした。
+
+### LightNovel_CSV.py
+
+`Add 2024/10/02/`  
+楽天のブックスから指定した月のラノベの情報を読み取り、csvを作成するPython。  
+
+```csv
+名前,詳細,日付
+```
+
+詳細の部分は空白になっている、
 
 ### LightNovel_GoogleCalendarPush.py
 
