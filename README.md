@@ -186,6 +186,11 @@ title,URL
 `Add 2024/08/28`  
 Tesseractを使って画像から文字を取得するPython。  
 
+### USB_FileCopyChecker.py
+
+`Add 2024/10/04`  
+指定したファイルをUSBが認識されたときにコピーするPython。
+
 ### yt-dlp_dowroad.py
 
 `Add 2024/08/31`  
