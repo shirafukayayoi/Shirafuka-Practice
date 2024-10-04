@@ -7,3 +7,7 @@ sheet_credentials.json
 drive_credentials.json
 token.pickle
 .vscode/settings.json
+Python/build/
+Python/dist/
+*.pyc
+*.spec
