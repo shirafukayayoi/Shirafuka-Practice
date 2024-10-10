@@ -144,16 +144,16 @@ class GoogleSpreadsheet:
     def __init__(self, token_path='token.pickle', credentials_path='client_secret.json'):
         self.token_path = token_path
         self.credentials_path = credentials_path
-        self.sheet_creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.SCOPES)
+        self.sheet_creds = Credentials.from_service_account_file('sheet_token.json', scopes=self.SCOPES)
         self.creds = None
         self.drive = None
-        self.sheetclient = gspread.authorize(self.sheet_creds)
-        self.sheet = None  # 最初のシートにアクセス
-        self.client = None 
+        self.sheets = None  # Sheets APIサービスを格納
+        self.client = None
         self.spreadsheet_id = None
         self.authenticate()
 
     def authenticate(self):
+        # 認証プロセス
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
                 self.creds = pickle.load(token)
@@ -162,15 +162,15 @@ class GoogleSpreadsheet:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
             elif os.path.exists(self.credentials_path):
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    self.credentials_path, self.SCOPES)
+                flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, self.SCOPES)
                 self.creds = flow.run_local_server(port=0)
+
             with open(self.token_path, 'wb') as token:
                 pickle.dump(self.creds, token)
 
         if self.creds and self.creds.valid:
             self.drive = build('drive', 'v3', credentials=self.creds)
-            self.sheets = build('sheets', 'v4', credentials=self.creds)
+            self.sheets = build('sheets', 'v4', credentials=self.creds)  # Sheets APIを初期化
             self.client = gspread.authorize(self.creds)
         else:
             print('Drive or Sheets auth failed.')
@@ -183,20 +183,12 @@ class GoogleSpreadsheet:
             print('Drive service is not available.')
             return None
 
-    def get_sheets_service(self):
-        """Google Sheets APIのサービスインスタンスを返すメソッド"""
-        if self.sheets:
-            return self.sheets
-        else:
-            print('Sheets service is not available.')
-            return None
-
     def create_spreadsheet(self, title, data, count, folder_id):
-        if not self.sheets:
+        if not self.sheets:  # Sheets APIの初期化確認
             print('Sheets service is not available.')
             return None
 
-        if not self.drive:
+        if not self.drive:  # Drive APIの初期化確認
             print('Drive service is not available.')
             return None
 

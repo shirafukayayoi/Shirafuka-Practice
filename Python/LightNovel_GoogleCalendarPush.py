@@ -52,7 +52,7 @@ class LightNovelEventManager:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'Calendar_credentials.json', ['https://www.googleapis.com/auth/calendar.events'])
+                    'credentials.json', ['https://www.googleapis.com/auth/calendar.events'])
                 creds = flow.run_local_server(port=0)
             with open('token.json', 'w') as token:
                 token.write(creds.to_json())

@@ -191,6 +191,31 @@ Tesseractを使って画像から文字を取得するPython。
 `Add 2024/10/04`  
 指定したファイルをUSBが認識されたときにコピーするPython。
 
+### Youtube_PlayListChange.py
+
+`Add 2024/10/10`  
+Youtubeのプレイリストの中身を消し、特定のGoogleスプレッドシートからvideoidを取り出しプレイリストに追加していくPython。  
+スプレッドシートは、
+
+```csv
+名前,URL
+```
+
+という形式になっていなければいけない。
+
+### Youtube_PlayListGetCSV
+
+`Add 2024/10/10`  
+特定のプレイリストを、Googleスプレッドシートで出力するPython。  
+出力結果は、
+
+```csv
+名前,URL
+名前,URL
+```
+
+と出力される。
+
 ### yt-dlp_dowroad.py
 
 `Add 2024/08/31`  

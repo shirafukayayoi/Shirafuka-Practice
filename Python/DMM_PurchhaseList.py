@@ -127,7 +127,7 @@ class DMMLibrary:
 class GoogleSpreadsheet:
     def __init__(self, sheet_url):
         self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        self.creds = Credentials.from_service_account_file('sheet_credentials.json', scopes=self.scope)
+        self.creds = Credentials.from_service_account_file('service_token.json', scopes=self.scope)
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(sheet_url)
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
