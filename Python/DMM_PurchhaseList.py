@@ -140,9 +140,9 @@ class GoogleSpreadsheet:
             range=f"{sheet_name}!A:Z"
         )
 
-        all_data = [["タイトル", "サークル", "種類"]] + all_data
+        all_data = [["タイトル", "サークル", "種類"]] + data
         body = {
-            'values': data
+            'values': all_data
         }
 
         result = self.client.spreadsheets().values().update(
