@@ -207,14 +207,12 @@ Youtubeのプレイリストの中身を消し、特定のGoogleスプレッド�
 
 `Add 2024/10/10`  
 特定のプレイリストを、Googleスプレッドシートで出力するPython。  
-出力結果は、
+出力結果：
 
 ```csv
 名前,URL
 名前,URL
 ```
-
-と出力される。
 
 ### yt-dlp_dowroad.py
 

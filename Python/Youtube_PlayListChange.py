@@ -64,18 +64,18 @@ class GoogleSpreadsheet:
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
     
     def read_data(self):
-        data = self.sheet.get_all_values()[1:]  # 2行目以降のデータを取得
+        data = self.sheet.col_values(2)  # B列のデータをすべて取得
         video_ids = []
 
-        for row in data:
-            # 各行の文字列からすべての動画IDを抽出
-            matches = re.findall(r'v=([a-zA-Z0-9_-]+)', row[0])
-            if not matches:
-                logging.warning(f"Invalid URL format in row: {row[0]}")
-                continue
-            for video_id in matches:
-                video_ids.append([row[0], video_id])
-        
+        for url in data:
+            # URLから動画IDを抽出
+            video_id_match = re.search(r'(?:v=|\/embed\/|\/1\/|\/v\/|youtu\.be\/|\/e\/|watch\?v=)([a-zA-Z0-9_-]{11})', url)
+            if video_id_match:
+                video_id = video_id_match.group(1)
+                video_ids.append([url, video_id])
+            else:
+                logging.warning(f"Invalid URL format: {url}")
+
         return video_ids
 
 class YoutubePlayListGet:
@@ -97,7 +97,7 @@ class YoutubePlayListGet:
                     request = self.youtube.playlistItems().list(
                         part='id',
                         playlistId=playlist_id,
-                        maxResults=50,  # 最大50アイテムを取得
+                        maxResults=1,  # 最大50アイテムを取得
                         pageToken=next_page_token  # 次のページのトークン
                     )
                     response = request.execute()
