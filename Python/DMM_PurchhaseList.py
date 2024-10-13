@@ -6,8 +6,8 @@ import time
 from datetime import datetime
 from dotenv import load_dotenv
 import os
-import gspread
 from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 import discord
 import asyncio
 
@@ -38,7 +38,7 @@ async def main():
 
     google_spreadsheet = GoogleSpreadsheet(sheet_url)    # クラスに値を渡す、initに渡すものがない場合は空でOK
     count = google_spreadsheet.write_data(data, count)   # countを戻り値として受け取る
-    google_spreadsheet.AutoFilter()
+    google_spreadsheet.AutoFilter(data)
 
     token = os.environ["DISCORD_TOKEN"]  # トークンを環境変数などから取得するのがベスト
     discord_bot = DiscordBOT(token)
@@ -126,27 +126,46 @@ class DMMLibrary:
 
 class GoogleSpreadsheet:
     def __init__(self, sheet_url):
-        self.scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
+        self.scope = ['https://spreadsheets.google.com/feeds']
         self.creds = Credentials.from_service_account_file('service_token.json', scopes=self.scope)
-        self.client = gspread.authorize(self.creds)
-        self.spreadsheet = self.client.open_by_key(sheet_url)
-        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+        self.client = build('sheets', 'v4', credentials=self.creds)
+        self.sheet_url = sheet_url
 
     def write_data(self, data, count):
-        self.sheet.clear()
-        self.sheet.insert_row(["タイトル", "サークル", "種類"], 1)
-        for row in data:
-            time.sleep(1)
-            count += 1
-            self.sheet.append_row(row)
-            print(row)
-        print(f"{count}回データを書き込みました。")
+        spreadsheet = self.client.spreadsheets().get(spreadsheetId=self.sheet_url).execute()
+        sheet_name = spreadsheet['sheets'][0]['properties']['title']
+        
+        self.client.spreadsheets().values().clear(
+            spreadsheetId=self.sheet_url,
+            range=f"{sheet_name}!A:Z"
+        )
+
+        all_data = [["タイトル", "サークル", "種類"]] + all_data
+        body = {
+            'values': data
+        }
+
+        result = self.client.spreadsheets().values().update(
+            spreadsheetId=self.sheet_url,
+            range=f"{sheet_name}!A1",
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+        
+        count += len(data)
+        print(f"{count}件のデータを書き込みました")
         return count
 
-    def AutoFilter(self):
-        last_column_num = len(self.sheet.row_values(1))
+    def AutoFilter(self, data):
+        # シートの情報を取得
+        spreadsheet = self.client.spreadsheets().get(spreadsheetId=self.sheet_url).execute()
+        sheet_name = spreadsheet['sheets'][0]['properties']['title']
+
+        # 最終列の計算（data の最初の要素の長さで判断）
+        last_column_num = len(data[0]) if data else 3
         print(f"最終列は{last_column_num}です")
-        
+
+        # 列番号をアルファベットに変換
         def num2alpha(num):
             if num <= 26:
                 return chr(64 + num)
@@ -154,11 +173,36 @@ class GoogleSpreadsheet:
                 return num2alpha(num // 26 - 1) + chr(90)
             else:
                 return num2alpha(num // 26) + chr(64 + num % 26)
-        
+
         last_column_alp = num2alpha(last_column_num)
         print(f'最終列のアルファベットは{last_column_alp}です')
-        self.sheet.set_basic_filter(f'A:{last_column_alp}')
+
+        # フィルターを設定
+        requests = [{
+            'setBasicFilter': {
+                'filter': {
+                    'range': {
+                        'sheetId': spreadsheet['sheets'][0]['properties']['sheetId'],
+                        'startRowIndex': 0,
+                        'endRowIndex': len(data) + 1,  # 行数の指定（ヘッダー行を含むため +1）
+                        'startColumnIndex': 0,
+                        'endColumnIndex': last_column_num
+                    }
+                }
+            }
+        }]
+        
+        body = {
+            'requests': requests
+        }
+
+        self.client.spreadsheets().batchUpdate(
+            spreadsheetId=self.sheet_url,
+            body=body
+        ).execute()
         print("フィルターを設定しました")
+
+
 
 class DiscordBOT:
     def __init__(self, token):
