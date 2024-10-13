@@ -1,9 +1,7 @@
-import csv
 from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import pickle
-import gspread
 from dotenv import load_dotenv
 import os.path
 from datetime import datetime
