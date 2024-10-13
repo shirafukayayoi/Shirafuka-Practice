@@ -10,7 +10,6 @@ from googleapiclient.discovery import build
 from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials
-import gspread
 import time
 from dotenv import load_dotenv
 import os
@@ -29,7 +28,7 @@ def main():
 
     scraping = WebScraping()
     data = scraping.get_html()
-    spreadsheet = GoogleSpreadsheet()
+    spreadsheet = GoogleDriveAuth()
     if data:
         spreadsheet.get_drive_service()
         spreadsheet.create_spreadsheet(Filetitle, data, count, folder_id)
@@ -137,23 +136,21 @@ class WebScraping:
         except ValueError:
             print(f"日付のパースに失敗しました: {date_str}")
         return formatted_date
-
-class GoogleSpreadsheet:
+class GoogleDriveAuth:
     SCOPES = ['https://www.googleapis.com/auth/drive', 'https://www.googleapis.com/auth/spreadsheets']
 
-    def __init__(self, token_path='token.pickle', credentials_path='client_secret.json'):
+    def __init__(self, token_path='token.pickle', credentials_path='credentials.json'):
         self.token_path = token_path
         self.credentials_path = credentials_path
-        self.sheet_creds = Credentials.from_service_account_file('sheet_token.json', scopes=self.SCOPES)
         self.creds = None
-        self.drive = None
-        self.sheets = None  # Sheets APIサービスを格納
-        self.client = None
-        self.spreadsheet_id = None
+        self.drive_service = None
+        self.sheets_service = None
+
+        # OAuth2認証とサービスインスタンスの初期化
         self.authenticate()
 
     def authenticate(self):
-        # 認証プロセス
+        """OAuth2 認証を行い、Drive API と Sheets API のサービスを初期化"""
         if os.path.exists(self.token_path):
             with open(self.token_path, 'rb') as token:
                 self.creds = pickle.load(token)
@@ -163,75 +160,85 @@ class GoogleSpreadsheet:
                 self.creds.refresh(Request())
             elif os.path.exists(self.credentials_path):
                 flow = InstalledAppFlow.from_client_secrets_file(self.credentials_path, self.SCOPES)
-                self.creds = flow.run_local_server(port=0)
-
+                self.creds = flow.run_local_server(port=0)  # 認証フローを実行
             with open(self.token_path, 'wb') as token:
                 pickle.dump(self.creds, token)
 
+        # サービスの初期化
         if self.creds and self.creds.valid:
-            self.drive = build('drive', 'v3', credentials=self.creds)
-            self.sheets = build('sheets', 'v4', credentials=self.creds)  # Sheets APIを初期化
-            self.client = gspread.authorize(self.creds)
+            self.drive_service = build('drive', 'v3', credentials=self.creds)
+            self.sheets_service = build('sheets', 'v4', credentials=self.creds)
         else:
             print('Drive or Sheets auth failed.')
 
-    def get_drive_service(self):
-        """Google Drive APIのサービスインスタンスを返すメソッド"""
-        if self.drive:
-            return self.drive
-        else:
-            print('Drive service is not available.')
+    def create_spreadsheet(self, title, folder_id):
+        """新しいスプレッドシートを作成し、指定したフォルダに移動"""
+        now = datetime.now().strftime('%Y-%m-%d')
+        if self.sheets_service is None:
+            print("Sheets serviceが初期化されていません。")
             return None
-
-    def create_spreadsheet(self, title, data, count, folder_id):
-        if not self.sheets:  # Sheets APIの初期化確認
-            print('Sheets service is not available.')
-            return None
-
-        if not self.drive:  # Drive APIの初期化確認
-            print('Drive service is not available.')
-            return None
-
-        # スプレッドシートの作成
+        
+        # スプレッドシート作成
         spreadsheet = {
             'properties': {
-                'title': title
+                'title': f"{now}_{title}"
             }
         }
-        request = self.sheets.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
-        spreadsheet_id = request.get('spreadsheetId')
-        print(f'Spreadsheet ID: {spreadsheet_id}')
 
-        # フォルダIDに移動するためのファイルアップデート
+        request = self.sheets_service.spreadsheets().create(body=spreadsheet, fields='spreadsheetId').execute()
+        spreadsheet_id = request.get('spreadsheetId')
+        print(f'Spreadsheet created with ID: {spreadsheet_id}')
+
+        # フォルダに移動
         file_metadata = {
             'parents': [folder_id]
         }
-        self.drive.files().update(
+
+        self.drive_service.files().update(
             fileId=spreadsheet_id,
             addParents=folder_id,
             removeParents='root',
             fields='id, parents'
         ).execute()
 
-        self.spreadsheet_id = spreadsheet_id
-        sheet = self.client.open_by_key(spreadsheet_id).sheet1
-        sheet.insert_row(['タイトル', '著者', '価格', 'レーベル', '終了日'], 1)
-        for row in data:
-            time.sleep(1)
-            sheet.append_row(row)
-            count += 1
-            print(row)
-        print(f"{count}回データを書き込みました。")
-        return self.spreadsheet_id
+        return spreadsheet_id
 
-    # フィルターの設定
-    def AutoFilter(self):
-        self.sheet = self.client.open_by_key(self.spreadsheet_id).sheet1
-        # 最終列の数値を取得
-        last_column_num = len(self.sheet.row_values(1))
+    def write_data(self, spreadsheet_id, data):
+        """スプレッドシートにデータを書き込む"""
+        if self.sheets_service is None:
+            print("Sheets serviceが初期化されていません。")
+            return None
+
+        # データ書き込み
+        body = {
+            'values': data
+        }
+
+        result = self.sheets_service.spreadsheets().values().update(
+            spreadsheetId=spreadsheet_id,
+            range='Sheet1!A1',
+            valueInputOption='RAW',
+            body=body
+        ).execute()
+
+        print(f"{result.get('updatedCells')} cells updated.")
+
+    def AutoFilter(self, spreadsheet_id, data):
+        """スプレッドシートにフィルターを設定する"""
+        if self.sheets_service is None:
+            print("Sheets serviceが初期化されていません。")
+            return None
+
+        # シートの情報を取得
+        spreadsheet = self.sheets_service.spreadsheets().get(spreadsheetId=spreadsheet_id).execute()
+        sheet_name = spreadsheet['sheets'][0]['properties']['title']
+        sheet_id = spreadsheet['sheets'][0]['properties']['sheetId']
+
+        # 最終列の計算（data の最初の要素の長さで判断）
+        last_column_num = len(data[0]) if data else 3
         print(f"最終列は{last_column_num}です")
-        
-        # 数値からアルファベットを求める内部関数
+
+        # 列番号をアルファベットに変換
         def num2alpha(num):
             if num <= 26:
                 return chr(64 + num)
@@ -239,13 +246,36 @@ class GoogleSpreadsheet:
                 return num2alpha(num // 26 - 1) + chr(90)
             else:
                 return num2alpha(num // 26) + chr(64 + num % 26)
-        
-        # 最終列を数値→アルファベットへ変換
+
         last_column_alp = num2alpha(last_column_num)
         print(f'最終列のアルファベットは{last_column_alp}です')
-        self.sheet.set_basic_filter(name=(f'A:{last_column_alp}'))
+
+        # フィルターを設定するリクエスト
+        requests = [{
+            'setBasicFilter': {
+                'filter': {
+                    'range': {
+                        'sheetId': sheet_id,
+                        'startRowIndex': 0,
+                        'endRowIndex': len(data) + 1,  # 行数の指定（ヘッダー行を含むため +1）
+                        'startColumnIndex': 0,
+                        'endColumnIndex': last_column_num
+                    }
+                }
+            }
+        }]
+
+        # リクエストをGoogle Sheets APIに送信
+        body = {
+            'requests': requests
+        }
+
+        self.sheets_service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id,
+            body=body
+        ).execute()
         print("フィルターを設定しました")
-    
+
 class DiscordBOT:
     def __init__(self, token):
         self.token = token
