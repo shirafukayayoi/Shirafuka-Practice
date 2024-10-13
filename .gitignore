@@ -12,3 +12,4 @@ Python/dist/
 credentials.json
 *.pickle
 *.log
+calendar_token.json
