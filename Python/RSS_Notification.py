@@ -1,7 +1,7 @@
 import feedparser
 
 # RSSフィードのURLを指定
-rss_url = input('RSSフィードのURLを入力してください: ')
+rss_url = input("RSSフィードのURLを入力してください: ")
 # RSSフィードを取得して解析
 feed = feedparser.parse(rss_url)
 

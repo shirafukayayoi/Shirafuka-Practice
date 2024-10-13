@@ -1,5 +1,6 @@
 import os
 
+
 def print_directory_structure(root_dir, prefix=""):
     items = os.listdir(root_dir)
     for index, item in enumerate(items):
@@ -15,6 +16,7 @@ def print_directory_structure(root_dir, prefix=""):
             else:
                 new_prefix = prefix + "|   "
             print_directory_structure(item_path, new_prefix)
+
 
 if __name__ == "__main__":
     root_directory = input("ディレクトリパスを入力してください: ")
