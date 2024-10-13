@@ -51,6 +51,19 @@ class GoogleSpreadSheet:
         except Exception as e:
             print(f"シート名の取得中にエラーが発生しました: {e}")
             return None
+    
+    def write_data(self):    # データを書き込む
+        data = ["Hello", "World"]   # デモ用のデータ
+
+        spreadsheet = self.client.spreadsheets().get(spreadsheetId=self.sheet_url).execute()    # 認証を行い、スプレッドシートの情報を取得
+        sheet_name = self.get_sheet_name()
+
+        result = self.service.spreadsheets().values().update(
+            spreadsheetId=self.spreadsheet_id,
+            range=f"{sheet_name}!A1",
+            valueInputOption='RAW',
+            body={'values': [data]}
+        ).execute()
 
 if __name__ == "__main__":
     main()
