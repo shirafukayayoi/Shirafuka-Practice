@@ -5,10 +5,11 @@
 これは白深やよいが練習で作ったプログラムを置いておく場所です。  
 PythonやNode.jsを使っているので、そのプログラムを置いておきます。  
 自分が少しずつ覚えながら作っているコードなので、コメントが沢山ありますが注意してください。  
+Docsも増えました
 
 ## Links
 
-- Twitter [@shirafuka_yayoi](https://x.com/shirafuka_yayoi)
+- Twitter [@shirafukayayoi](https://x.com/shirafukayayoi)
 
 ## Shirafuka_Programs
 
@@ -21,13 +22,13 @@ foobar2000とYoutubeSourceを組み合わせて、DiscordRichPresenceに再生�
 実行結果はこんな感じ。  
 ![image](./image/Node_fb2kRichPresence.png)  
 詳しくはこのレポジトリを見てください。  
-[https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)  
+[https://github.com/shirafukayayoi/Node_fb2kRichPresence](https://github.com/shirafukayayoi/Node_fb2kRichPresence)
 
 ### PuppeteerDocs.js
 
 `Add 2024/07/21`  
 Puppeteerの基本的な使い方をまとめたNode.js。  
-詳しくはコード内のコメントを見てください。  
+詳しくはコード内のコメントを見てください。
 
 ## Python
 
@@ -38,11 +39,16 @@ Puppeteerの基本的な使い方をまとめたNode.js。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
 
+### Base64Decode.py
+
+`Add 2024/10/26`
+Base64でデコードされた文字列と、元の文字列を使って複合キーを取得するPython
+
 ### BOOK-WALKER_Sale_Information.py
 
 `Add 2024/08/02`  
 BOOK-WALKERのセール情報を取得するPython。  
-Googleスプレットシートに出力されます。  
+Googleスプレットシートに出力されます。
 
 ```csv
 タイトル,著者,価格,レーベル,終了日
@@ -68,7 +74,7 @@ DMMの購入履歴を取得するPython。
 csvファイルに出力されます。  
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/DMM_PurchaseList](https://github.com/shirafukayayoi/DMM_PurchaseList)  
-実行結果はこんな感じ。  
+実行結果はこんな感じ。
 
 ```csv
 タイトル,サークル名,ジャンル
@@ -97,9 +103,9 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 `Add 2024/06/03`  
 ディレクトリの構成を出力してくれるPython。  
 ~~`python ImportOS_DirectoryText,py <ディレクトリパス>`~~  
-実行してからディレクトリを入れるようにしました。  
+実行してからディレクトリを入れるようにしました。
 
-**実行結果:**  
+**実行結果:**
 
 ```text
 ├── img
@@ -124,7 +130,7 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 ### LightNovel_CSV.py
 
 `Add 2024/10/02/`  
-楽天のブックスから指定した月のラノベの情報を読み取り、csvを作成するPython。  
+楽天のブックスから指定した月のラノベの情報を読み取り、csvを作成するPython。
 
 ```csv
 名前,詳細,日付
@@ -151,7 +157,7 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 置いたPDFのディレクトリと同じ場所にパスワードが解除されたPDFが出力されます。  
 ~~コード内の`characters`と`count`を書き換えて使います。~~  
 コードを実行してから選択できるようにしました。  
-**実行結果:**  
+**実行結果:**
 
 ```text
 0000 は一致しませんでした
@@ -175,7 +181,7 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 
 `Add 2024/08/18`  
 RSSフィードを取得して、新しい記事があれば通知するPython。  
-最新のtitleとURLを取得します。  
+最新のtitleとURLを取得します。
 
 ```text
 title,URL
@@ -184,7 +190,12 @@ title,URL
 ### Tesseract_OCR.py
 
 `Add 2024/08/28`  
-Tesseractを使って画像から文字を取得するPython。  
+Tesseractを使って画像から文字を取得するPython。
+
+### URLChecker.py
+
+`Add 2024/10/26`  
+指定しれたURLの隠しURLを探すPython
 
 ### USB_FileCopyChecker.py
 
@@ -238,7 +249,7 @@ GoogleCalendarに接続するためのテンプレート。
 `Add 2024/07/28`  
 GoogleSheetに接続するためのテンプレート。  
 必要になるのは、`credentials.json`とスプレットシートID。  
-**TemplateList:**  
+**TemplateList:**
 
 - スプレットシートのデータを読み込む
 - スプレットシートのすべてのデータを消す
