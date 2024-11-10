@@ -5,7 +5,10 @@
 これは白深やよいが練習で作ったプログラムを置いておく場所です。  
 PythonやNode.jsを使っているので、そのプログラムを置いておきます。  
 自分が少しずつ覚えながら作っているコードなので、コメントが沢山ありますが注意してください。  
-Docsも増えました
+**chenge log:**
+
+- docsの追加
+- RUSTの追加
 
 ## Links
 
@@ -41,7 +44,7 @@ Puppeteerの基本的な使い方をまとめたNode.js。
 
 ### Base64Decode.py
 
-`Add 2024/10/26`
+`Add 2024/10/26`  
 Base64でデコードされた文字列と、元の文字列を使って複合キーを取得するPython
 
 ### BOOK-WALKER_NewBookCalendarPush.py
