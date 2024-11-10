@@ -44,6 +44,11 @@ Puppeteerの基本的な使い方をまとめたNode.js。
 `Add 2024/10/26`
 Base64でデコードされた文字列と、元の文字列を使って複合キーを取得するPython
 
+### BOOK-WALKER_NewBookCalendarPush.py
+
+`Add 2024/11/10`  
+[BOOK☆WALKER](https://bookwalker.jp/top/)の新刊情報のURLからタイトル等を取得しGoogleカレンダーに追加するPython。
+
 ### BOOK-WALKER_Sale_Information.py
 
 `Add 2024/08/02`  
@@ -84,6 +89,11 @@ csvファイルに出力されます。
 
 **chenge log:**  
 `2024/07/28`:GoogleSheetに出力するようにした。
+
+### DMMGAMEsCalendarPush.py
+
+`Add 2024/11/10`  
+DMMのゲーム新作情報をGoogleカレンダーに登録するためのPython。
 
 ### Gboard_FormatText.py
 
