@@ -215,6 +215,12 @@ Tesseractを使って画像から文字を取得するPython。
 `Add 2024/10/04`  
 指定したファイルをUSBが認識されたときにコピーするPython。
 
+### VideoSpeedChange.py
+
+`Add 2024/11/14`  
+指定した動画の再生スピードを変更するPython。  
+ディレクトリに`output.mp4`が出力される。
+
 ### Youtube_PlayListChange.py
 
 `Add 2024/10/10`  
