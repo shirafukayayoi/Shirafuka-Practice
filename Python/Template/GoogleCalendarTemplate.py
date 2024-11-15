@@ -112,10 +112,12 @@ class GoogleCalendar:
         for index, row in df.iterrows():
             event = {
                 "summary": row["タイトル"],
-                "description": row["詳細"],
                 "start": {"date": row["日付"], "timeZone": "Asia/Tokyo"},
                 "end": {"date": row["日付"], "timeZone": "Asia/Tokyo"},
             }
+            # 詳細欄が空でない場合のみdescriptionを追加
+            if pd.notna(row["詳細"]):
+                event["description"] = row["詳細"]
             self.service.events().insert(calendarId=Calendar_id, body=event).execute()
             print(f"{row['タイトル']}を追加しました")
 
