@@ -106,14 +106,14 @@ class GoogleCalendar:
 
     # CSVファイルからイベントを追加する
     def Add_event_from_csv(self, Calendar_id):
-        """タイトル,詳細,日付"""
+        """タイトル,詳細,予定開始時間,予定終了時間"""
         csv_file = input("CSVファイルのパスを入力してください: ")
         df = pd.read_csv(csv_file)
         for index, row in df.iterrows():
             event = {
                 "summary": row["タイトル"],
-                "start": {"date": row["日付"], "timeZone": "Asia/Tokyo"},
-                "end": {"date": row["日付"], "timeZone": "Asia/Tokyo"},
+                "start": {"dateTime": row["予定開始時間"], "timeZone": "Asia/Tokyo"},
+                "end": {"dateTime": row["予定終了時間"], "timeZone": "Asia/Tokyo"},
             }
             # 詳細欄が空でない場合のみdescriptionを追加
             if pd.notna(row["詳細"]):
