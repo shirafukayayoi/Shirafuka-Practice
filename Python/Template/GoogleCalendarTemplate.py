@@ -118,6 +118,8 @@ class GoogleCalendar:
             # 詳細欄が空でない場合のみdescriptionを追加
             if pd.notna(row["詳細"]):
                 event["description"] = row["詳細"]
+            if pd.notna(row["場所"]):
+                event["location"] = row["場所"]
             self.service.events().insert(calendarId=Calendar_id, body=event).execute()
             print(f"{row['タイトル']}を追加しました")
 

@@ -41,7 +41,7 @@ def main():
     youtube_playlist_get = YoutubePlayListGet()
 
     # 既存のプレイリストの中身を消す
-    youtube_playlist_get.clear_playlist(playlist_id)
+    # youtube_playlist_get.clear_playlist(playlist_id)
 
     # 新しい動画を追加
     youtube_playlist_get.add_video(playlist_id, video_ids)
@@ -116,7 +116,7 @@ class YoutubePlayListGet:
                     request = self.youtube.playlistItems().list(
                         part="id",
                         playlistId=playlist_id,
-                        maxResults=1,  # 最大50アイテムを取得
+                        maxResults=1,
                         pageToken=next_page_token,  # 次のページのトークン
                     )
                     response = request.execute()
@@ -177,6 +177,7 @@ class YoutubePlayListGet:
                     )
                     response = request.execute()
                     logging.info(f"Added video {video_id} to playlist {playlist_id}")
+                    time.sleep(1)  # 1秒待機
                     break
                 except HttpError as e:
                     logging.error(f"Error occurred: {e}")
@@ -190,7 +191,6 @@ class YoutubePlayListGet:
                         time.sleep(wait_time)
                     else:
                         break
-
 
 if __name__ == "__main__":
     main()

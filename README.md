@@ -250,7 +250,19 @@ Youtubeのプレイリストの中身を消し、特定のGoogleスプレッド�
 yt-dlpを使って動画をダウンロードするPython。  
 今のオプションは最高画質&最高音質。
 
+## PyAutoGui
+
+PyAutoGuiで作成した自動化プログラム一覧
+
+### CoreKeeper_AutoFish.py
+
+`Add 2024/12/5`  
+[Core Keeper](https://store.steampowered.com/app/1621690/Core_Keeper/)の魚釣りを自動化するPython。  
+実行中は他のことができないのが難点。
+
 ## Template-Python
+
+様々なプログラムの元となるテンプレート。
 
 ### GoogleCalendarTemplate.py
 
