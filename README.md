@@ -5,10 +5,9 @@
 これは白深やよいが練習で作ったプログラムを置いておく場所です。  
 PythonやNode.jsを使っているので、そのプログラムを置いておきます。  
 自分が少しずつ覚えながら作っているコードなので、コメントが沢山ありますが注意してください。  
-**chenge log:**
+**Chenge Log:**
 
-- docsの追加
-- RUSTの追加
+- Docsの追加
 
 ## Links
 
@@ -65,8 +64,9 @@ Googleスプレットシートに出力されます。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
 
-**chenge log:**  
-`2024/08/02`:金額を数値として取得できるようにした。
+**chenge log:**
+
+- `2024/08/02`:金額を数値として取得できるようにした。
 
 ### Bookmeter_LoadBookList.py
 
@@ -90,8 +90,9 @@ csvファイルに出力されます。
 タイトル,サークル名,ジャンル
 ```
 
-**chenge log:**  
-`2024/07/28`:GoogleSheetに出力するようにした。
+**chenge log:**
+
+- `2024/07/28`:GoogleSheetに出力するようにした。
 
 ### DMMGAMEsCalendarPush.py
 
@@ -137,8 +138,9 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 └── main.css
 ```
 
-**chenge log:**  
-`2021/07/17`:cmdからディレクトリを入力できるようにした。
+**chenge log:**
+
+- `2021/07/17`:cmdからディレクトリを入力できるようにした。
 
 ### LightNovel_CSV.py
 
@@ -180,8 +182,23 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 パスワードは????でした。
 ```
 
-**Chenge Log:**  
-`2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
+**Chenge Log:**
+
+- `2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
+
+### Process_Moniter.py
+
+`Add 2024/12/05`  
+特定のソフトのメモリ、CPU、GPU等の使用率を出力するPython。  
+**例:**
+
+```text
+2024-12-08 15:24:57 - プロセス: foobar2000.exe (PID: 15156)
+CPU使用率: 0.0%
+メモリ使用量: 101.1 MB
+GPU使用率: GPU 0: 7.0% 使用中
+--------------------------------------------------
+```
 
 ### RandamNumber.py
 
@@ -274,6 +291,10 @@ GoogleCalendarに接続するためのテンプレート。
 - イベントを追加する
 - イベントを取得する
 - CSVファイルからイベントを追加する
+
+**Chenge Log:**
+
+- `2024/12/08`場所も追加できるようにした。
 
 ### GoogleSheetTemplate.py
 
