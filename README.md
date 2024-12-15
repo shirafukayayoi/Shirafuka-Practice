@@ -304,6 +304,25 @@ GoogleCalendarに接続するためのテンプレート。
 
 - `2024/12/08`場所も追加できるようにした。
 
+### GoogleDriveTemplate.py
+
+`Add 2024/12/16`  
+GoogleDriveに接続するためのテンプレート。
+**TemplateList:**
+
+- 新しいスプレットシートの作成
+- ファイルの移動
+- 特定のフォルダからスプレットシートを取り出す
+
+### GoogleGmailTemplate.py
+
+`Add 2024/12/16`  
+GoogleGmailに接続するためのテンプレート  
+**TempletList:**
+
+- 最新のメールを取得する
+- 特定のメールアドレスのメールを指定した回数取得する。
+
 ### GoogleSheetTemplate.py
 
 `Add 2024/07/28`  

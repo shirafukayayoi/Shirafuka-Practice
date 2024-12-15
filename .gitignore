@@ -17,3 +17,4 @@ calendar_token.json
 *.pdb
 target/
 memo.py
+gmail_token.json
