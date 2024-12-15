@@ -277,6 +277,14 @@ PyAutoGuiで作成した自動化プログラム一覧
 [Core Keeper](https://store.steampowered.com/app/1621690/Core_Keeper/)の魚釣りを自動化するPython。  
 実行中は他のことができないのが難点。
 
+## School-Python
+
+学校生活を送るうえで使ったPythonコード。
+
+### Autodownload_EnglishPDF.py
+
+[全国商業高校協会/全商英検](https://zensho.or.jp/examination/pastexams/english/)の3級の問題文を全てダウンロードするPython。
+
 ## Template-Python
 
 様々なプログラムの元となるテンプレート。
