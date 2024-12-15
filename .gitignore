@@ -16,3 +16,4 @@ calendar_token.json
 *.exe
 *.pdb
 target/
+memo.py
