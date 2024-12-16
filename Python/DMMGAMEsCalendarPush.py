@@ -17,8 +17,9 @@ def main():
     url = input("URLを入力してください: ")
     webscraping = Webscraping(url)
     game_title, formatted_date = webscraping.get_html()
-    google_calendar = GoogleCalendar()
-    google_calendar.Add_event(game_title, formatted_date, url)
+    print(f"タイトル: {game_title}, 日付: {formatted_date}")
+    # google_calendar = GoogleCalendar()
+    # google_calendar.Add_event(game_title, formatted_date, url)
 
 
 class Webscraping:
@@ -53,7 +54,7 @@ class Webscraping:
                     )
                     title = h_soup.title.string
                     print(f"ページのタイトル: {title}")
-
+                    print(self.session.cookies.get_dict())
                     game_title_element = h_soup.select_one(".productTitle__headline")
                     date_element = h_soup.select_one(
                         ".contentsDetailBottom__tableDataRight p"
