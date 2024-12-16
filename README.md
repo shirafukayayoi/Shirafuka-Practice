@@ -267,6 +267,11 @@ Youtubeのプレイリストの中身を消し、特定のGoogleスプレッド�
 yt-dlpを使って動画をダウンロードするPython。  
 今のオプションは最高画質&最高音質。
 
+### YuchoMailOutput.py
+
+`Add 2024/12/17`  
+ゆうちょデビットのメールを取得し、使用したお金を特定のGoogleスプレッドシートに出力するPythonコード。
+
 ## PyAutoGui
 
 PyAutoGuiで作成した自動化プログラム一覧

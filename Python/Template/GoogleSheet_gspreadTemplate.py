@@ -128,6 +128,12 @@ class GoogleSpreadsheet_Drive:
         sheet = self.client.open_by_key(spreadsheet_id).sheet1
         sheet.insert_row(data, 1)
 
+    # 複数のデータを一気に書き込む
+    def write_data_bulk(self, spreadsheet_id, data):
+        sheet = self.client.open_by_key(spreadsheet_id).sheet1
+        rows = [[data, data, data]]
+        sheet.append_rows(rows)
+
     # フィルターを設定する
     def AutoFilter(self, spreadsheet_id):
         sheet = self.client.open_by_key(spreadsheet_id).sheet1
