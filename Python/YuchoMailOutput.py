@@ -107,20 +107,14 @@ def spreadsheet_login():
 
 
 def while_yuchomail_output(data, amount, store, sheet):
-    cell_range = sheet.range("A2:C" + str(sheet.row_count))
-    for cell in cell_range:
-        cell.value = ""
-    sheet.update_cells(cell_range)
-    print("データをクリアしました")
-    rows = [[data[i], amount[i], store[i]] for i in range(len(data))]
-    cell_list = sheet.range(f"A2:C{len(rows) + 1}")
-    for i, row in enumerate(rows):
-        for j, val in enumerate(row):
-            cell_list[i * 3 + j].value = val
-    sheet.update_cells(cell_list)
+    sheet.clear()
+    sheet.update("A1", [["日付", "金額", "店舗"]])
+    rows = [[data[i], float(amount[i]), store[i]] for i in range(len(data))]
     sheet.append_rows(rows)
     for row in rows:
         print(row)
+    sheet.update("E1", [["合計"]])
+    sheet.update("E2", [["=SUM(B:B)"]], value_input_option="USER_ENTERED")
 
 
 if __name__ == "__main__":
