@@ -56,6 +56,9 @@ def get_yucho_message(service):
         )
         messages.extend(results.get("messages", []))
 
+    # 古いメッセージから処理するために逆順にする
+    messages.reverse()
+
     pattern_date = r"\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}"
     pattern_amount = r"\d{1,3}(,\d{3})*"
     pattern_store = r"利用店舗\s+(.*)"
