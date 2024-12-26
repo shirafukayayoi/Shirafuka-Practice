@@ -35,7 +35,7 @@ def get_yucho_message(service):
         .list(
             userId="me",
             q='subject:"【ゆうちょデビット】ご利用のお知らせ"',
-            maxResults=100,
+            maxResults=5,
         )
         .execute()
     )
@@ -49,23 +49,20 @@ def get_yucho_message(service):
             .list(
                 userId="me",
                 q='subject:"【ゆうちょデビット】ご利用のお知らせ"',
-                maxResults=100,
+                maxResults=5,
                 pageToken=page_token,
             )
             .execute()
         )
         messages.extend(results.get("messages", []))
 
-    # 古いメッセージから処理するために逆順にする
-    messages.reverse()
-
     pattern_date = r"\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}"
-    pattern_amount = r"\d{1,3}(,\d{3})*"
+    pattern_amount = r"\d{1,3}(,\d{3})*円"
     pattern_store = r"利用店舗\s+(.*)"
 
-    data = []
-    amount = []
-    store = []
+    dates = []
+    amounts = []
+    stores = []
 
     for message in messages:
         msg = service.users().messages().get(userId="me", id=message["id"]).execute()
@@ -78,21 +75,22 @@ def get_yucho_message(service):
                     data = part["body"]["data"]
                     text = base64.urlsafe_b64decode(data).decode("utf-8")
         else:
-            text_data = payload["body"]["data"]
-            text = base64.urlsafe_b64decode(text_data).decode("utf-8")
+            data = payload["body"]["data"]
+            text = base64.urlsafe_b64decode(data).decode("utf-8")
 
         strings_date = re.search(pattern_date, text)
         strings_amount = re.search(pattern_amount, text)
         strings_store = re.search(pattern_store, text)
 
         if strings_date:
-            data.append(strings_date.group())
+            dates.append(strings_date.group())
         if strings_amount:
-            amount.append(strings_amount.group())
+            amount_value = strings_amount.group().replace("円", "").replace(",", "")
+            amounts.append(int(amount_value))
         if strings_store:
-            store.append(strings_store.group(1))
+            stores.append(strings_store.group(1))
 
-    return data, amount, store
+    return dates, amounts, stores
 
 
 def spreadsheet_login():
@@ -109,20 +107,24 @@ def spreadsheet_login():
     return sheet, spreadsheet, sheet
 
 
-def while_yuchomail_output(data, amount, store, sheet):
+def while_yuchomail_output(dates, amounts, stores, sheet):
+    if len(dates) != len(amounts) or len(dates) != len(stores):
+        print("Error: The lengths of dates, amounts, and stores lists do not match.")
+        return
+
     sheet.clear()
     sheet.update("A1", [["日付", "金額", "店舗"]])
-    rows = [[data[i], float(amount[i]), store[i]] for i in range(len(data))]
+    rows = [[dates[i], amounts[i], stores[i]] for i in range(len(dates))]
     sheet.append_rows(rows)
     for row in rows:
         print(row)
     sheet.update("E1", [["合計"]])
-    sheet.update("E2", [["=SUM(B:B)"]], value_input_option="USER_ENTERED")
+    sheet.update("E2", [["=SUM(B2:B)"]], value_input_option="USER_ENTERED")
 
 
 if __name__ == "__main__":
     load_dotenv()
     service = gmail_login()
-    data, amount, store = get_yucho_message(service)
+    dates, amounts, stores = get_yucho_message(service)
     sheet, spreadsheet, sheet = spreadsheet_login()
-    while_yuchomail_output(data, amount, store, sheet)
+    while_yuchomail_output(dates, amounts, stores, sheet)
