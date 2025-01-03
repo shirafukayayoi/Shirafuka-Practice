@@ -12,17 +12,23 @@ from googleapiclient.discovery import build
 
 
 def gmail_login():
+    credentials_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "credentials.json"
+    )
+    gmail_token_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "gmail_token.json"
+    )
     SCOPES = ["https://www.googleapis.com/auth/gmail.readonly"]
     creds = None
-    if os.path.exists("gmail_token.json"):
-        creds = Credentials.from_authorized_user_file("gmail_token.json", SCOPES)
+    if os.path.exists(gmail_token_path):
+        creds = Credentials.from_authorized_user_file(gmail_token_path, SCOPES)
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             creds.refresh(Request())
         else:
-            flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
             creds = flow.run_local_server(port=0)
-        with open("gmail_token.json", "w") as token:
+        with open(gmail_token_path, "w") as token:
             token.write(creds.to_json())
     service = build("gmail", "v1", credentials=creds)
     return service
@@ -55,6 +61,8 @@ def get_yucho_message(service):
             .execute()
         )
         messages.extend(results.get("messages", []))
+
+    messages = list(reversed(messages))
 
     pattern_date = r"\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}"
     pattern_amount = r"\d{1,3}(,\d{3})*円"
@@ -94,12 +102,15 @@ def get_yucho_message(service):
 
 
 def spreadsheet_login():
+    service_token_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "service_token.json"
+    )
     scope = [
         "https://spreadsheets.google.com/feeds",
         "https://www.googleapis.com/auth/drive",
     ]
     creds = ServiceAccountCredentials.from_service_account_file(
-        "service_token.json", scopes=scope
+        service_token_path, scopes=scope
     )
     client = gspread.authorize(creds)
     spreadsheet = client.open_by_key(os.getenv("YUCHO_SHEET"))
@@ -123,6 +134,7 @@ def while_yuchomail_output(dates, amounts, stores, sheet):
 
 
 if __name__ == "__main__":
+    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     load_dotenv()
     service = gmail_login()
     dates, amounts, stores = get_yucho_message(service)
