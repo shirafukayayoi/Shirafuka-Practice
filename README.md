@@ -221,6 +221,12 @@ RSSフィードを取得して、新しい記事があれば通知するPython�
 title,URL
 ```
 
+### savedata_copy.py
+
+`Add 2025/01/05`  
+特定のフォルダーのセーブデータのフォルダーをバックアップするためのPython。  
+www/saveにも対応している。
+
 ### Tesseract_OCR.py
 
 `Add 2024/08/28`  
