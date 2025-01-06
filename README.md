@@ -75,6 +75,37 @@ Googleスプレットシートに出力されます。
 使い方はこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Bookmeter_LoadBookList](https://github.com/shirafukayayoi/Bookmeter_LoadBookList)
 
+### ImportOS_DirectoryText.py
+
+`Add 2024/06/03`  
+ディレクトリの構成を出力してくれるPython。  
+~~`python ImportOS_DirectoryText,py <ディレクトリパス>`~~  
+実行してからディレクトリを入れるようにしました。
+
+**実行結果:**
+
+```text
+├── img
+|   ├── dokusyome-ta-.png
+|   ├── GitHub.png
+|   ├── icon.jpg
+|   ├── icon_2.png
+|   ├── icon_3.jpg
+|   ├── icon_4.jpg
+|   ├── kakuyomu_icon.png
+|   ├── ron_icon.png
+|   ├── twitch-logo.jpg
+|   ├── Twitter_icon.png
+|   └── Youtube.png
+├── index.html
+└── main.css
+```
+
+**chenge log:**
+
+- `2024/07/17`:cmdからディレクトリを入力できるようにした。
+- `2025/01/07`:`ImportOS_DirectoryText.py`から`DirectoryText.py`に変更
+
 ### DMM_PurchhaseList.py
 
 `Add 2024/07/27`  
@@ -111,36 +142,6 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 `Add 2024/10/02`  
 指定したファイルを自動的に[GigaFile便](https://gigafile.nu)にアップロードするPython。  
 実行したらURLが出力されます。
-
-### ImportOS_DirectoryText.py
-
-`Add 2024/06/03`  
-ディレクトリの構成を出力してくれるPython。  
-~~`python ImportOS_DirectoryText,py <ディレクトリパス>`~~  
-実行してからディレクトリを入れるようにしました。
-
-**実行結果:**
-
-```text
-├── img
-|   ├── dokusyome-ta-.png
-|   ├── GitHub.png
-|   ├── icon.jpg
-|   ├── icon_2.png
-|   ├── icon_3.jpg
-|   ├── icon_4.jpg
-|   ├── kakuyomu_icon.png
-|   ├── ron_icon.png
-|   ├── twitch-logo.jpg
-|   ├── Twitter_icon.png
-|   └── Youtube.png
-├── index.html
-└── main.css
-```
-
-**chenge log:**
-
-- `2021/07/17`:cmdからディレクトリを入力できるようにした。
 
 ### LightNovel_CSV.py
 
