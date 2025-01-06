@@ -225,7 +225,12 @@ title,URL
 
 `Add 2025/01/05`  
 特定のフォルダーのセーブデータのフォルダーをバックアップするためのPython。  
-www/saveにも対応している。
+www/saveにも対応している。  
+Google Driveの`G:`を使い、実装している。
+
+**Change Log:**
+
+- `2025/01/06` セーブデータをGoogle Driveに直接移動するようにした。
 
 ### Tesseract_OCR.py
 

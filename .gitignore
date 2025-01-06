@@ -18,4 +18,4 @@ calendar_token.json
 target/
 memo.py
 gmail_token.json
-savedata_folder/
+drive_token.json
