@@ -75,7 +75,7 @@ Googleスプレットシートに出力されます。
 使い方はこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Bookmeter_LoadBookList](https://github.com/shirafukayayoi/Bookmeter_LoadBookList)
 
-### ImportOS_DirectoryText.py
+### DirectoryText.py
 
 `Add 2024/06/03`  
 ディレクトリの構成を出力してくれるPython。  
@@ -286,7 +286,9 @@ yt-dlpを使って動画をダウンロードするPython。
 ### YuchoMailOutput.py
 
 `Add 2024/12/17`  
-ゆうちょデビットのメールを取得し、使用したお金を特定のGoogleスプレッドシートに出力するPythonコード。
+ゆうちょデビットのメールを取得し、使用したお金を特定のGoogleスプレッドシートに出力するPythonコード。  
+詳しくはこのレポジトリを見てください。  
+[https://github.com/shirafukayayoi/YuchoMailOutput](https://github.com/shirafukayayoi/YuchoMailOutput)
 
 **Chenge Log:**
 
