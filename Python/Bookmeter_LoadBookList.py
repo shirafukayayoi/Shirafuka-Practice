@@ -1,33 +1,16 @@
-import asyncio
-import csv
 import os
-import os.path
-import pickle
 import time
 
-import discord
 import gspread
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 load_dotenv()
-
-
-async def main():
-    url = input("読書メーターのURLを入力してください: ")
-    spreadsheet_id = "1BaWrynhH4oYqd1UcmKeGTN81fC_huPHbLGXcl06nIRQ"
-
-    web_scraping = WebScraping(url, spreadsheet_id)
-    web_scraping.get_html()
-
-    token = os.getenv("DISCORD_TOKEN")
-    discord_bot = DiscordBOT(token)
-    await discord_bot.run(spreadsheet_id)
 
 
 class WebScraping:
@@ -39,9 +22,9 @@ class WebScraping:
         }
         self.data = []
         self.all_links = []
-        self.spreadsheet = GoogleSpreadsheet(url, spreadsheet_id)
+        self.spreadsheet = GoogleSpreadsheet(spreadsheet_id)
 
-    def get_html(self):
+    def get_html(self, spreadsheet_id):
         # 初回リクエスト処理
         try:
             req = self.session.get(self.url, headers=self.headers)
@@ -144,33 +127,38 @@ class WebScraping:
                 link_samples[0].split("?")[0] if link_samples else ""
             )  # 最初のリンクのみを処理
 
-            data = [title, authors, page_number, links]
-            self.spreadsheet.write_data(data)
+            self.data.append([title, authors, page_number, links])
             print(title, authors, page_number, links)
-        self.spreadsheet.AutoFilter(self.spreadsheet.spreadsheet.id)
+        self.spreadsheet.write_data(self.data)
+        self.spreadsheet.AutoFilter(spreadsheet_id)
 
 
 class GoogleSpreadsheet:
-    def __init__(self, url, spreadsheet_id):
-        self.scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive",
-        ]
-        self.creds = Credentials.from_service_account_file(
-            "sheet_credentials.json", scopes=self.scope
-        )
+    def __init__(self, spreadsheet_id):
+        self.scope = ["https://www.googleapis.com/auth/spreadsheets"]
+        self.creds = None
+        if os.path.exists("sheet_token.json"):
+            self.creds = Credentials.from_authorized_user_file(
+                "sheet_token.json", self.scope
+            )
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json", self.scope
+                )
+                self.creds = flow.run_local_server(port=0)
+            with open("sheet_token.json", "w") as token:
+                token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
-        self.sheet = (
-            self.spreadsheet.get_worksheet(1)
-            if "stacked" in url
-            else self.spreadsheet.sheet1
-        )
-        self.sheet.clear()
+        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+        self.sheet.clear()  # シートをクリア
         self.sheet.insert_row(["タイトル", "著者", "ページ数", "URL"], 1)
 
     def write_data(self, data):
-        self.sheet.append_rows([data])
+        self.sheet.append_rows(data)
 
     def AutoFilter(self, spreadsheet_id):
         sheet = self.client.open_by_key(spreadsheet_id).sheet1
@@ -188,41 +176,9 @@ class GoogleSpreadsheet:
         sheet.set_basic_filter(f"A1:{last_column_alp}1")  # 範囲を指定してフィルター設定
 
 
-class DiscordBOT:
-    def __init__(self, token):
-        self.token = token
-        self.channel_id = "1279064814697713664"
-
-        # Intents を設定
-        self.intents = discord.Intents.default()
-        self.intents.message_content = True  # メッセージの内容を受け取るための設定
-
-        self.bot = discord.Client(intents=self.intents)
-
-        # イベントハンドラーを設定
-        self.bot.event(self.on_ready)
-
-    # 非同期関数として on_ready を定義
-    async def on_ready(self):
-        booktype = "積読本" if "stacked" in self.spreadsheet_id else "読んだ本"
-        print(f"Logged in as {self.bot.user} (ID: {self.bot.user.id})")
-        await self.send_message(
-            f"{booktype}を取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{self.spreadsheet_id}"
-        )
-        await self.bot.close()  # ボットを終了する
-
-    async def send_message(self, message):
-        channel = self.bot.get_channel(int(self.channel_id))
-        if channel:
-            await channel.send(message)
-            print("メッセージを送信しました")
-        else:
-            print("チャンネルが見つかりませんでした")
-
-    async def run(self, spreadsheet_id):
-        self.spreadsheet_id = spreadsheet_id
-        await self.bot.start(self.token)  # 非同期処理としてボットを開始
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    url = input("読書メーターのURLを入力してください: ")
+    spreadsheet_id = "1BaWrynhH4oYqd1UcmKeGTN81fC_huPHbLGXcl06nIRQ"
+
+    web_scraping = WebScraping(url, spreadsheet_id)
+    web_scraping.get_html()

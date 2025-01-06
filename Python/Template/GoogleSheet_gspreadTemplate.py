@@ -4,9 +4,8 @@ import pickle
 import gspread
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
-from googleapiclient.discovery import build
 
 load_dotenv()
 
@@ -20,12 +19,24 @@ def main():
 class GoogleSpreadsheet:
     def __init__(self, spreadsheet_id):
         self.scope = [
-            "https://spreadsheets.google.com/feeds",
-            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/spreadsheets",
         ]
-        self.creds = Credentials.from_service_account_file(
-            "credentials.json", scopes=self.scope
-        )
+
+        self.creds = None
+        if os.path.exists("sheet_token.json"):
+            self.creds = Credentials.from_authorized_user_file(
+                "sheet_token.json", self.scope
+            )
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json", self.scope
+                )
+                self.creds = flow.run_local_server(port=0)
+            with open("sheet_token.json", "w") as token:
+                token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
         self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
@@ -43,7 +54,7 @@ class GoogleSpreadsheet_Drive:
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.sheet_creds = Credentials.from_service_account_file(
-            "sheet_credentials.json", scopes=self.SCOPES
+            "sheet_token.json", scopes=self.SCOPES
         )
         self.creds = None
         self.drive = None
@@ -152,6 +163,11 @@ class GoogleSpreadsheet_Drive:
         print(f"最終列のアルファベットは{last_column_alp}です")
         sheet.set_basic_filter(f"A1:{last_column_alp}1")
         print("フィルターを設定しました")
+
+    # 関数を追加する
+    def white_function(self, spreadsheet_id):
+        sheet = self.client.open_by_key(spreadsheet_id).sheet1
+        sheet.update("A1", [["=SUM(B1:B10)"]], value_input_option="USER_ENTERED")
 
 
 if __name__ == "__main__":

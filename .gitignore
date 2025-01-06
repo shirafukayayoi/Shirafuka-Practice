@@ -19,3 +19,4 @@ target/
 memo.py
 gmail_token.json
 drive_token.json
+sheet_token.json

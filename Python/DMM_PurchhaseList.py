@@ -1,54 +1,18 @@
-import asyncio
 import os
 import time
-from datetime import datetime
 
-import discord
+import gspread
 from dotenv import load_dotenv
-from google.oauth2.service_account import Credentials
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
 
 # .envファイルの読み込み
 load_dotenv()
-
-
-async def main():
-    # 環境変数の読み込みを確認
-    email = os.environ["DMM_EMAIL"]
-    password = os.environ["DMM_PASSWORD"]
-    sheet_url = os.environ["DMM_GOOGLE_SHEET_URL"]
-
-    today = datetime.now().strftime(
-        "%Y-%m-%d"
-    )  # 今日の日付を取得（ファイル名に入れるため）
-    login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
-    count = 0
-
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=chrome_options)
-
-    dmm_login = DMMLogin(driver, login_url, email, password)
-    dmm_login.login()  # ログイン関数の実行
-
-    dmm_library = DMMLibrary(driver)  # initにdriverを渡す
-    dmm_library.navigate_to_library()
-    data = dmm_library.scroll_and_collect_data()  # 取得した値をdataに格納
-    driver.quit()
-
-    google_spreadsheet = GoogleSpreadsheet(
-        sheet_url
-    )  # クラスに値を渡す、initに渡すものがない場合は空でOK
-    count = google_spreadsheet.write_data(data, count)  # countを戻り値として受け取る
-    google_spreadsheet.AutoFilter(data)
-
-    token = os.environ["DISCORD_TOKEN"]  # トークンを環境変数などから取得するのがベスト
-    discord_bot = DiscordBOT(token)
-    discord_bot.run(sheet_url)  # メッセージを送信し、Botを実行します
 
 
 class DMMLogin:
@@ -145,49 +109,35 @@ class DMMLibrary:
 
 
 class GoogleSpreadsheet:
-    def __init__(self, sheet_url):
-        self.scope = ["https://spreadsheets.google.com/feeds"]
-        self.creds = Credentials.from_service_account_file(
-            "service_token.json", scopes=self.scope
-        )
-        self.client = build("sheets", "v4", credentials=self.creds)
-        self.sheet_url = sheet_url
-
-    def write_data(self, data, count):
-        spreadsheet = (
-            self.client.spreadsheets().get(spreadsheetId=self.sheet_url).execute()
-        )
-        sheet_name = spreadsheet["sheets"][0]["properties"]["title"]
-
-        self.client.spreadsheets().values().clear(
-            spreadsheetId=self.sheet_url, range=f"{sheet_name}!A:Z"
-        )
-
-        all_data = [["タイトル", "サークル", "種類"]] + data
-        body = {"values": all_data}
-
-        result = (
-            self.client.spreadsheets()
-            .values()
-            .update(
-                spreadsheetId=self.sheet_url,
-                range=f"{sheet_name}!A1",
-                valueInputOption="RAW",
-                body=body,
+    def __init__(self, spreadsheet_id):
+        self.scope = ["https://www.googleapis.com/auth/spreadsheets"]
+        self.creds = None
+        if os.path.exists("sheet_token.json"):
+            self.creds = Credentials.from_authorized_user_file(
+                "sheet_token.json", self.scope
             )
-            .execute()
-        )
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                self.creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    "credentials.json", self.scope
+                )
+                self.creds = flow.run_local_server(port=0)
+            with open("sheet_token.json", "w") as token:
+                token.write(self.creds.to_json())
+        self.client = gspread.authorize(self.creds)
+        self.spreadsheet = self.client.open_by_key(spreadsheet_id)
+        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+        self.sheet.clear()
 
-        count += len(data)
-        print(f"{count}件のデータを書き込みました")
-        return count
+    def write_data(self, data):
+        all_data = [["タイトル", "サークル", "種類"]] + data
+        self.sheet.insert_rows(all_data)
 
-    def AutoFilter(self, data):
+    def AutoFilter(self, data, spreadsheet_id):
         # シートの情報を取得
-        spreadsheet = (
-            self.client.spreadsheets().get(spreadsheetId=self.sheet_url).execute()
-        )
-        sheet_name = spreadsheet["sheets"][0]["properties"]["title"]
+        sheet = self.spreadsheet.sheet1
 
         # 最終列の計算（data の最初の要素の長さで判断）
         last_column_num = len(data[0]) if data else 3
@@ -211,9 +161,7 @@ class GoogleSpreadsheet:
                 "setBasicFilter": {
                     "filter": {
                         "range": {
-                            "sheetId": spreadsheet["sheets"][0]["properties"][
-                                "sheetId"
-                            ],
+                            "sheetId": sheet.id,
                             "startRowIndex": 0,
                             "endRowIndex": len(data)
                             + 1,  # 行数の指定（ヘッダー行を含むため +1）
@@ -227,46 +175,32 @@ class GoogleSpreadsheet:
 
         body = {"requests": requests}
 
-        self.client.spreadsheets().batchUpdate(
-            spreadsheetId=self.sheet_url, body=body
+        service = build("sheets", "v4", credentials=self.creds)
+        service.spreadsheets().batchUpdate(
+            spreadsheetId=spreadsheet_id, body=body
         ).execute()
         print("フィルターを設定しました")
 
 
-class DiscordBOT:
-    def __init__(self, token):
-        self.token = token
-        self.channel_id = "1279064814697713664"
-
-        # Intents を設定
-        self.intents = discord.Intents.default()
-        self.intents.message_content = True  # メッセージの内容を受け取るための設定
-
-        self.bot = discord.Client(intents=self.intents)
-
-        # イベントハンドラーを設定
-        self.bot.event(self.on_ready)
-
-    # 非同期関数として on_ready を定義
-    async def on_ready(self):
-        print(f"Logged in as {self.bot.user} (ID: {self.bot.user.id})")
-        await self.send_message(
-            f"DMMの購入リストを取得、書き込みました:\nhttps://docs.google.com/spreadsheets/d/{self.spreadsheet_id}"
-        )
-        await self.bot.close()  # ボットを終了する
-
-    async def send_message(self, message):
-        channel = self.bot.get_channel(int(self.channel_id))
-        if channel:
-            await channel.send(message)
-            print("メッセージを送信しました")
-        else:
-            print("チャンネルが見つかりませんでした")
-
-    async def run(self, sheet_url):
-        self.spreadsheet_id = sheet_url
-        await self.bot.start(self.token)  # 非同期処理としてボットを開始
-
-
 if __name__ == "__main__":
-    asyncio.run(main())
+    email = os.environ["DMM_EMAIL"]
+    password = os.environ["DMM_PASSWORD"]
+    spreadsheet_id = os.environ["DMM_GOOGLE_SHEET_URL"]
+
+    login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
+
+    chrome_options = Options()
+    chrome_options.add_argument("--no-sandbox")
+    driver = webdriver.Chrome(options=chrome_options)
+
+    dmm_login = DMMLogin(driver, login_url, email, password)
+    dmm_login.login()  # ログイン関数の実行
+
+    dmm_library = DMMLibrary(driver)  # initにdriverを渡す
+    dmm_library.navigate_to_library()
+    data = dmm_library.scroll_and_collect_data()  # 取得した値をdataに格納
+    driver.quit()
+
+    google_spreadsheet = GoogleSpreadsheet(spreadsheet_id)
+    google_spreadsheet.write_data(data)
+    google_spreadsheet.AutoFilter(data, spreadsheet_id)

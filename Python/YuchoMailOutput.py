@@ -6,7 +6,6 @@ import gspread
 from dotenv import load_dotenv
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
-from google.oauth2.service_account import Credentials as ServiceAccountCredentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
@@ -32,6 +31,31 @@ def gmail_login():
             token.write(creds.to_json())
     service = build("gmail", "v1", credentials=creds)
     return service
+
+
+def spreadsheet_login():
+    credentials_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "credentials.json"
+    )
+    sheet_token_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "sheet_token.json"
+    )
+    SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
+    creds = None
+    if os.path.exists(sheet_token_path):
+        creds = Credentials.from_authorized_user_file(sheet_token_path, SCOPES)
+    if not creds or not creds.valid:
+        if creds and creds.expired and creds.refresh_token:
+            creds.refresh(Request())
+        else:
+            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
+            creds = flow.run_local_server(port=0)
+        with open(sheet_token_path, "w") as token:
+            token.write(creds.to_json())
+    client = gspread.authorize(creds)
+    spreadsheet = client.open_by_key(os.getenv("YUCHO_SHEET"))
+    sheet = spreadsheet.sheet1
+    return sheet, spreadsheet, sheet
 
 
 def get_yucho_message(service):
@@ -99,23 +123,6 @@ def get_yucho_message(service):
             stores.append(strings_store.group(1))
 
     return dates, amounts, stores
-
-
-def spreadsheet_login():
-    service_token_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "service_token.json"
-    )
-    scope = [
-        "https://spreadsheets.google.com/feeds",
-        "https://www.googleapis.com/auth/drive",
-    ]
-    creds = ServiceAccountCredentials.from_service_account_file(
-        service_token_path, scopes=scope
-    )
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(os.getenv("YUCHO_SHEET"))
-    sheet = spreadsheet.sheet1
-    return sheet, spreadsheet, sheet
 
 
 def while_yuchomail_output(dates, amounts, stores, sheet):
