@@ -136,8 +136,29 @@ def while_yuchomail_output(dates, amounts, stores, sheet):
     sheet.append_rows(rows)
     for row in rows:
         print(row)
-    sheet.update("E1", [["合計"]])
-    sheet.update("E2", [["=SUM(B2:B)"]], value_input_option="USER_ENTERED")
+    sheet.update("H1", [["合計"]])
+    sheet.update("H2", [["=SUM(B2:B)"]], value_input_option="USER_ENTERED")
+    sheet.update(
+        "E1",
+        [
+            [
+                "店舗",
+            ]
+        ],
+    )
+    sheet.update(
+        "F1",
+        [
+            [
+                "合計金額",
+            ]
+        ],
+    )
+    sheet.update(
+        "E2",
+        [["=ARRAYFORMULA({UNIQUE(C2:C), SUMIF(C2:C, UNIQUE(C2:C), B2:B)})"]],
+        value_input_option="USER_ENTERED",
+    )
 
 
 if __name__ == "__main__":
