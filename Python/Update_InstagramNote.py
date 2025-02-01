@@ -18,7 +18,7 @@ class InstagramUpdateNote:
     def login(self, page: Page):
         # クッキーが存在する場合はクッキーを読み込む
         try:
-            with open("cookies.json", "r") as f:
+            with open("instagram_cookies.json", "r") as f:
                 cookies = json.load(f)
             page.context.add_cookies(cookies)
             print("Cookies loaded")
@@ -73,7 +73,7 @@ class InstagramUpdateNote:
 
             # クッキーを保存
             cookies = page.context.cookies()
-            with open("cookies.json", "w") as f:
+            with open("instagram_cookies.json", "w") as f:
                 json.dump(cookies, f)
             print("Cookies saved")
 
