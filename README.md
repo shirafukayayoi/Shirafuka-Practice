@@ -126,6 +126,7 @@ csvファイルに出力されます。
 **chenge log:**
 
 - `2024/07/28`:GoogleSheetに出力するようにした。
+- `2025/02/01`:seleniumからplaywrightに移行、Cookieがあれば使用しログインするようにした。
 
 ### DMMGAMEsCalendarPush.py
 

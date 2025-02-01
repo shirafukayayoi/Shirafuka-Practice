@@ -1,5 +1,6 @@
+import asyncio
+import json
 import os
-import time
 
 import gspread
 from dotenv import load_dotenv
@@ -7,103 +8,78 @@ from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.common.by import By
+from playwright.async_api import async_playwright
 
 # .envファイルの読み込み
 load_dotenv()
 
 
-class DMMLogin:
-    def __init__(self, driver, login_url, email, password):
-        self.driver = driver
-        self.login_url = login_url
-        self.email = email
-        self.password = password
-
-    def login(self):
-        self.driver.get(self.login_url)
-        self.driver.set_window_size(1000, 1000)  # ウィンドウサイズを指定
-        time.sleep(10)
-
-        try:
-            name_box = self.driver.find_element(By.NAME, "login_id")
-            name_box.send_keys(self.email)
-            print("ユーザー名入力完了")
-        except Exception as e:
-            print(f"ユーザー名入力フィールドが見つかりません: {e}")
-
-        try:
-            pass_box = self.driver.find_element(By.NAME, "password")
-            pass_box.send_keys(self.password)
-            print("パスワード入力完了")
-        except Exception as e:
-            print(f"パスワード入力フィールドが見つかりません: {e}")
-
-        try:
-            time.sleep(3)
-            login_button = self.driver.find_element(
-                By.XPATH, '//button[text()="ログイン"]'
-            )
-            self.driver.execute_script("arguments[0].click();", login_button)
-            print("フォームを送信しました")
-        except Exception as e:
-            print(f"フォームの送信に失敗しました: {e}")
-
-        print("ログイン完了")
-
-
 class DMMLibrary:
-    def __init__(self, driver):
-        self.driver = driver
+    def __init__(self, page):
+        self.page = page
 
-    def navigate_to_library(self):
-        time.sleep(3)
-        self.driver.get("https://www.dmm.co.jp/dc/-/mylibrary/")
+    async def navigate_to_library(self):
+        await self.page.goto("https://www.dmm.co.jp/dc/-/mylibrary/")
         try:
-            time.sleep(3)
-            yes_button = self.driver.find_element(
-                By.XPATH, "//a[contains(@href, 'declared=yes')]"
-            )
-            yes_button.click()
+            await asyncio.sleep(3)
+            await self.page.click('a[href*="declared=yes"]')
             print("「はい」をクリックしました")
         except Exception as e:
             print(f"「はい」が見つかりません: {e}")
-        time.sleep(4)
+        await asyncio.sleep(4)
 
-    def scroll_and_collect_data(self):
+    async def scroll_and_collect_data(self):
         try:
-            svg_path = self.driver.find_element(
-                By.XPATH, "//*[@class='silex-element-content']"
-            )
-            svg_path.click()
+            # 「×」ボタンをクリック
+            await self.page.click(".silex-element-content")
+            print("「×」をクリックしました")
         except Exception as e:
-            print(f"「×」が見つかりません")
+            print(f"「×」が見つかりません: {e}")
 
-        actions = self.driver.find_element(By.CLASS_NAME, "purchasedListArea1Znew")
+        # スクロール対象の要素を取得
+        actions = self.page.locator(".purchasedListArea1Znew")
+        if await actions.count() == 0:
+            print("スクロール対象の要素が見つかりません")
+            return []
+
         previous_scroll_height = 0
 
         while True:
-            current_scroll_height = self.driver.execute_script(
-                "return arguments[0].scrollTop + arguments[0].clientHeight;", actions
+            # 現在のスクロール位置と要素の高さを取得
+            current_scroll_height = await self.page.evaluate(
+                "(element) => element.scrollTop + element.clientHeight",
+                await actions.element_handle(),
             )
-            self.driver.execute_script(
-                "arguments[0].scrollTop += arguments[0].clientHeight;", actions
+
+            # スクロールを実行
+            await self.page.evaluate(
+                "(element) => { element.scrollTop += element.clientHeight; }",
+                await actions.element_handle(),
             )
-            time.sleep(1)
-            new_scroll_height = self.driver.execute_script(
-                "return arguments[0].scrollTop + arguments[0].clientHeight;", actions
+            await asyncio.sleep(1)
+
+            # 新しいスクロール位置を取得
+            new_scroll_height = await self.page.evaluate(
+                "(element) => element.scrollTop + element.clientHeight",
+                await actions.element_handle(),
             )
+
+            # スクロールが終了したか確認
             if new_scroll_height == current_scroll_height:
+                print("スクロールが終了しました")
                 break
 
-        titles = self.driver.find_elements(By.CLASS_NAME, "productTitle3sdi8")
-        circles = self.driver.find_elements(By.CLASS_NAME, "circleName209pI")
-        kinds = self.driver.find_elements(By.CLASS_NAME, "default3EHgn")
+        # タイトル、サークル、種類を取得
+        titles = await self.page.query_selector_all(".productTitle3sdi8")
+        circles = await self.page.query_selector_all(".circleName209pI")
+        kinds = await self.page.query_selector_all(".default3EHgn")
 
-        length = min(len(titles), len(circles), len(kinds))
-        data = [(titles[i].text, circles[i].text, kinds[i].text) for i in range(length)]
+        titles_text = [await title.inner_text() for title in titles]
+        circles_text = [await circle.inner_text() for circle in circles]
+        kinds_text = [await kind.inner_text() for kind in kinds]
+
+        length = min(len(titles_text), len(circles_text), len(kinds_text))
+        data = [(titles_text[i], circles_text[i], kinds_text[i]) for i in range(length)]
 
         return data
 
@@ -128,7 +104,7 @@ class GoogleSpreadsheet:
                 token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
-        self.sheet = self.spreadsheet.sheet1  # 最初のシートにアクセス
+        self.sheet = self.spreadsheet.sheet1
         self.sheet.clear()
 
     def write_data(self, data):
@@ -136,14 +112,10 @@ class GoogleSpreadsheet:
         self.sheet.insert_rows(all_data)
 
     def AutoFilter(self, data, spreadsheet_id):
-        # シートの情報を取得
         sheet = self.spreadsheet.sheet1
-
-        # 最終列の計算（data の最初の要素の長さで判断）
         last_column_num = len(data[0]) if data else 3
         print(f"最終列は{last_column_num}です")
 
-        # 列番号をアルファベットに変換
         def num2alpha(num):
             if num <= 26:
                 return chr(64 + num)
@@ -155,7 +127,6 @@ class GoogleSpreadsheet:
         last_column_alp = num2alpha(last_column_num)
         print(f"最終列のアルファベットは{last_column_alp}です")
 
-        # フィルターを設定
         requests = [
             {
                 "setBasicFilter": {
@@ -163,8 +134,7 @@ class GoogleSpreadsheet:
                         "range": {
                             "sheetId": sheet.id,
                             "startRowIndex": 0,
-                            "endRowIndex": len(data)
-                            + 1,  # 行数の指定（ヘッダー行を含むため +1）
+                            "endRowIndex": len(data) + 1,
                             "startColumnIndex": 0,
                             "endColumnIndex": last_column_num,
                         }
@@ -182,25 +152,45 @@ class GoogleSpreadsheet:
         print("フィルターを設定しました")
 
 
-if __name__ == "__main__":
+async def main():
     email = os.environ["DMM_EMAIL"]
     password = os.environ["DMM_PASSWORD"]
     spreadsheet_id = os.environ["DMM_GOOGLE_SHEET_URL"]
 
     login_url = "https://accounts.dmm.co.jp/service/login/password/=/path=SgVTFksZDEtUDFNKUkQfGA__"
 
-    chrome_options = Options()
-    chrome_options.add_argument("--no-sandbox")
-    driver = webdriver.Chrome(options=chrome_options)
+    async with async_playwright() as p:
+        browser = await p.chromium.launch(headless=False)
+        page = await browser.new_page()
 
-    dmm_login = DMMLogin(driver, login_url, email, password)
-    dmm_login.login()  # ログイン関数の実行
+        if os.path.exists("dmm_cookies.json"):
+            with open("dmm_cookies.json", "r") as f:
+                cookies = json.load(f)
+            await page.context.add_cookies(cookies)
+            print("クッキーを読み込みました")
+        else:
+            # DMMにログイン
+            await page.goto(login_url)
+            await page.fill('input[name="login_id"]', email)
+            await page.fill('input[name="password"]', password)
+            await page.click('button:text("ログイン")')
+            print("ログイン完了")
+            cookies = await page.context.cookies()
+            with open("dmm_cookies.json", "w") as f:
+                json.dump(cookies, f)
+                print("クッキーを保存しました")
 
-    dmm_library = DMMLibrary(driver)  # initにdriverを渡す
-    dmm_library.navigate_to_library()
-    data = dmm_library.scroll_and_collect_data()  # 取得した値をdataに格納
-    driver.quit()
+            await asyncio.sleep(3)
+
+        dmm_library = DMMLibrary(page)
+        await dmm_library.navigate_to_library()
+        data = await dmm_library.scroll_and_collect_data()
+        await browser.close()
 
     google_spreadsheet = GoogleSpreadsheet(spreadsheet_id)
     google_spreadsheet.write_data(data)
     google_spreadsheet.AutoFilter(data, spreadsheet_id)
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
