@@ -174,6 +174,11 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 [https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
 [https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
 
+### merged_image.py
+
+`Add 2025/02/07`  
+1枚目に指定した画像の上に、2枚目に指定した画像を合成させるPython。
+
 ### PDF_PasswordCancellation.py
 
 `Add 2024/06/28`  
