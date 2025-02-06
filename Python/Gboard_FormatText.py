@@ -48,8 +48,8 @@ def process_file(file_path):
         # 新しいファイルをZIPファイルに圧縮
         zip_file_name = os.path.splitext(file_path)[0] + ".zip"
 
-        with zipfile.ZipFile(zip_file_name, "w", zipfile.ZIP_DEFLATED) as zipfile:
-            zipfile.write(new_file_path, os.path.basename(new_file_path))
+        with zipfile.ZipFile(zip_file_name, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            zip_file.write(new_file_path, os.path.basename(new_file_path))
 
         print(f"ZIPファイルの作成が完了しました: {zip_file_name}")
 
