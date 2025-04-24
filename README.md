@@ -41,6 +41,12 @@ Puppeteerの基本的な使い方をまとめたNode.js。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/AutoFolderUnzip](https://github.com/shirafukayayoi/AutoFolderUnzip)
 
+### AutoScreenshot.py
+
+`Add 2025/04/18`  
+Tkinterを使用した簡単なスクリーンショットツール。指定した領域のスクリーンショットを撮影し、ファイルとして保存します。  
+ボタン一つで簡単に画面の特定領域をキャプチャできます。
+
 ### Base64Decode.py
 
 `Add 2024/10/26`  
@@ -173,6 +179,12 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 詳しくは、このレポジトリと、Zennを見てください。  
 [https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush](https://github.com/shirafukayayoi/LightNovel_GoogleCalendarPush)  
 [https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d](https://zenn.dev/shirafukayayoi/articles/3d89539bf26c3d)
+
+### LINE_analysis.py
+
+`Add 2025/04/18`  
+LINEのトーク履歴を解析し、メッセージの頻度やトークの傾向を可視化するPythonスクリプト。
+ユーザーごとの発言数、時間帯別のメッセージ頻度、よく使われる単語などを分析します。
 
 ### merged_image.py
 
