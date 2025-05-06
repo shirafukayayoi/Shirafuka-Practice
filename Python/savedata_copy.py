@@ -29,12 +29,18 @@ class SavedataCopy:
                     print(f"'www/save' folder found in: {www_save_path}")
         try:
             backup_folder = "G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ"
+            # 指定の組み合わせだけ削除
             if os.path.exists(backup_folder):
-                for root, dirs, files in os.walk(backup_folder):
-                    for file in files:
-                        os.remove(os.path.join(root, file))
-                    for dir in dirs:
-                        shutil.rmtree(os.path.join(root, dir))
+                for folder in folders:
+                    for target in self.target_folders:
+                        dest_folder_path = os.path.join(backup_folder, folder, target)
+                        if os.path.exists(dest_folder_path) and os.path.isdir(dest_folder_path):
+                            shutil.rmtree(dest_folder_path)
+                # www/save も同様に削除
+                for folder in folders:
+                    www_save_path = os.path.join(backup_folder, folder, "www", "save")
+                    if os.path.exists(www_save_path) and os.path.isdir(www_save_path):
+                        shutil.rmtree(www_save_path)
             data_folder = os.makedirs(
                 "G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ", exist_ok=True
             )
