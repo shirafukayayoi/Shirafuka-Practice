@@ -193,6 +193,20 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 LINEのトーク履歴を解析し、メッセージの頻度やトークの傾向を可視化するPythonスクリプト。
 ユーザーごとの発言数、時間帯別のメッセージ頻度、よく使われる単語などを分析します。
 
+### MouseChanger.py
+
+`Add 2025/01/27`  
+Windowsのマウスカーソルを変更するPython。指定フォルダー内の`.ani`や`.cur`ファイルを検出し、システムに適用します。  
+`<名前> 移動.ani`、`<名前> テキスト.ani`などの日本語ファイル名に対応。  
+使用方法：
+
+```bash
+python MouseChanger.py "C:\path\to\cursor\folder"  # フォルダー指定
+python MouseChanger.py                              # 対話型モード
+```
+
+現在のカーソル設定を自動バックアップし、レジストリを更新してシステムに即座に反映します。
+
 ### merged_image.py
 
 `Add 2025/02/07`  
