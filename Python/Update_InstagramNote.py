@@ -21,20 +21,20 @@ class InstagramUpdateNote:
             with open("instagram_cookies.json", "r") as f:
                 cookies = json.load(f)
             page.context.add_cookies(cookies)
-            print("Cookies loaded")
+            print("[Info] Cookies loaded")
 
             # クッキーが有効かどうかを確認するためにインボックスに移動
             page.goto("https://www.instagram.com/direct/inbox/?next=%2F", timeout=60000)
-            print("Navigated to inbox page")
+            print("[Info] Navigated to inbox page")
 
             # クッキーが有効であれば、通知ボタンをクリック
             if page.url == "https://www.instagram.com/direct/inbox/?next=%2F":
-                print("Logged in with cookies")
+                print("[Info] Logged in with cookies")
                 try:
                     # 通知ボタンをクリック
                     notification_button = page.locator("button._a9--._ap36._a9_1")
                     notification_button.click()
-                    print("Clicked 'Later' button")
+                    print("[Info] Clicked \'Later\' button")
                 except Exception as e:
                     print(
                         f"An error occurred while clicking the notification button: {e}"
@@ -42,7 +42,7 @@ class InstagramUpdateNote:
                 return  # ログイン処理をスキップ
 
         except FileNotFoundError:
-            print("No cookies found, proceeding with login")
+            print("[Info] No cookies found, proceeding with login")
         except Exception as e:
             print(f"An error occurred while loading cookies: {e}")
 
@@ -50,24 +50,24 @@ class InstagramUpdateNote:
         try:
             # ログインページに移動
             page.goto(self.loginurl, timeout=60000)  # タイムアウトを60秒に設定
-            print("Navigated to login page")
+            print("[Info] Navigated to login page")
 
             # ユーザー名の入力フィールドを待機して特定
             username_field = page.get_by_label(
                 "電話番号、ユーザーネーム、またはメールアドレス"
             )
             username_field.fill(self.username)
-            print("Filled username")
+            print("[Info] Filled username")
 
             # パスワードの入力フィールドを待機して特定
             password_field = page.get_by_label("パスワード")
             password_field.fill(self.password)
-            print("Filled password")
+            print("[Info] Filled password")
 
             # ログインボタンを待機して特定
             login_button = page.locator("button._acan._acap._acas._aj1-")
             login_button.click()
-            print("Clicked login button")
+            print("[Info] Clicked login button")
 
             time.sleep(5)  # ログイン処理が完了するのを待つ
 
@@ -75,16 +75,16 @@ class InstagramUpdateNote:
             cookies = page.context.cookies()
             with open("instagram_cookies.json", "w") as f:
                 json.dump(cookies, f)
-            print("Cookies saved")
+            print("[Info] Cookies saved")
 
             # インボックスに移動
             page.goto("https://www.instagram.com/direct/inbox/?next=%2F")
-            print("Navigated to inbox page")
+            print("[Info] Navigated to inbox page")
 
             # 通知ボタンをクリック
             notification_button = page.locator("button._a9--._ap36._a9_1")
             notification_button.click()
-            print("Clicked 'Later' button")
+            print("[Info] Clicked \'Later\' button")
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -95,14 +95,14 @@ class InstagramUpdateNote:
             # メッセージボタンをクリック
             message_button = page.locator("svg[aria-label='Messenger']")
             message_button.click()
-            print("Clicked message button")
+            print("[Info] Clicked message button")
 
             time.sleep(2)  # ページが読み込まれるのを待つ
 
             # メッセージリスト内の特定のメッセージをクリック
             message_item = page.locator("span.x1lliihq.x6ikm8r.x10wlt62.x1n2onr6").first
             message_item.click()
-            print("Clicked message item")
+            print("[Info] Clicked message item")
 
             time.sleep(2)  # メッセージが開くのを待つ
 

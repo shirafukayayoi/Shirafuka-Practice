@@ -17,9 +17,9 @@ class GoogleDriveAuth:
         "https://www.googleapis.com/auth/drive",
         "https://www.googleapis.com/auth/spreadsheets",
     ]
-
+    
     def __init__(
-        self, token_path="token.pickle", credentials_path="drive_credentials.json"
+        self, token_path="../tokens/token.pickle", credentials_path="../tokens/credentials.json"
     ):
         self.token_path = token_path
         self.credentials_path = credentials_path
@@ -47,12 +47,12 @@ class GoogleDriveAuth:
             self.drive_service = build("drive", "v3", credentials=self.creds)
             self.sheets_service = build("sheets", "v4", credentials=self.creds)
         else:
-            print("Drive or Sheets auth failed.")
+            print("[Error] Drive or Sheets auth failed.")
 
     # 新しいスプレッドシートを作成するメソッド
     def create_spreadsheet(self, title):
         if not self.sheets_service:
-            print("Sheets service is not available.")
+            print("[Error] Sheets service is not available.")
             return None
 
         spreadsheet = {"properties": {"title": title}}
@@ -63,7 +63,7 @@ class GoogleDriveAuth:
             .execute()
         )
         spreadsheet_id = request.get("spreadsheetId")
-        print(f"Spreadsheet created with ID: {spreadsheet_id}")
+        print(f"[Info] Spreadsheet created with ID: {spreadsheet_id}")
         return spreadsheet_id
 
     # ファイルの移動をするメソッド
@@ -76,12 +76,10 @@ class GoogleDriveAuth:
             addParents=folder_id,
             removeParents="root",
             fields="id, parents",
-        ).execute()
-
-    # 特定のフォルダのスプレッドシートを取得するメソッド
+        ).execute()    # 特定のフォルダのスプレッドシートを取得するメソッド
     def get_spreadsheet(self, folder_id):
         if not self.drive_service:
-            print("Drive service is not available.")
+            print("[Error] Drive service is not available.")
             return None
 
         results = (
@@ -95,9 +93,9 @@ class GoogleDriveAuth:
         items = results.get("files", [])
 
         if not items:
-            print("No files found.")
+            print("[Info] No files found.")
         else:
-            print("Files:")
+            print("[Info] Files:")
             for item in items:
                 print(f"{item['name']} ({item['id']})")
         return items

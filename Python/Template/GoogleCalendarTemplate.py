@@ -22,9 +22,9 @@ class GoogleCalendar:
     def __init__(self):
         self.creds = None  # 認証情報の初期化
         if os.path.exists(
-            "token.json"
+            "../tokens/token.json"
         ):  # credentials.json ファイルに保存された認証情報をロードする
-            self.creds = Credentials.from_authorized_user_file("token.json")
+            self.creds = Credentials.from_authorized_user_file("../tokens/token.json")
 
         # 認証情報(token.json)がない場合や期限切れの場合は、ユーザーに認証を求める
         if (
@@ -41,12 +41,12 @@ class GoogleCalendar:
                 )
                 self.creds = flow.run_local_server(port=0)
             # 認証情報を保存する
-            with open("token.json", "w") as token:
+            with open("../tokens/token.json", "w") as token:
                 token.write(
                     self.creds.to_json()
                 )  # 認証情報が入っているself.credsをjson形式に変換して保存する
         self.service = build("calendar", "v3", credentials=self.creds)
-        print("Google Calendarに接続しました")
+        print("[Info] Google Calendarに接続しました")
 
     # Googleカレンダーのイベントを取得する
     def get_events(self, Calendar_id):

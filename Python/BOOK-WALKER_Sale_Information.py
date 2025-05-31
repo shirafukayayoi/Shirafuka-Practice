@@ -1,11 +1,9 @@
-import asyncio
 import os
 import os.path
 import pickle
 from datetime import datetime
 from urllib.parse import urlencode
 
-import discord
 import requests
 from bs4 import BeautifulSoup
 from dotenv import load_dotenv
@@ -19,7 +17,7 @@ from urllib3.util.retry import Retry
 load_dotenv()
 
 
-async def main():
+def main():
     today = datetime.today().strftime("%Y-%m-%d")
     order = input("ジャンルはなんですか？（ローマ字で）")
     Filetitle = f"BookWalker_{today}_{order}_SalesList"
@@ -41,10 +39,7 @@ async def main():
 
         # シートのURLを生成
         sheet_url = f"https://docs.google.com/spreadsheets/d/{spreadsheet_id}"
-
-        # Discordの通知
-        discord_bot = DiscordBOT(os.environ["DISCORD_TOKEN"])
-        await discord_bot.run(sheet_url)
+        print(f"[Info] スプレッドシートが作成されました: {sheet_url}")
 
 
 class WebScraping:
@@ -81,7 +76,7 @@ class WebScraping:
             # 最後のページ番号を取得
             self.endpage = int(pager_boxes[-1].get_text())
         else:
-            print("ページ数を取得できませんでした")
+            print("[Error] ページ数を取得できませんでした")
             return
 
         # 各ページのデータを取得
@@ -164,7 +159,7 @@ class GoogleDriveAuth:
         "https://www.googleapis.com/auth/spreadsheets",
     ]
 
-    def __init__(self, token_path="token.pickle", credentials_path="credentials.json"):
+    def __init__(self, token_path="tokens/token.pickle", credentials_path="tokens/credentials.json"):
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.creds = None
@@ -196,12 +191,12 @@ class GoogleDriveAuth:
             self.drive_service = build("drive", "v3", credentials=self.creds)
             self.sheets_service = build("sheets", "v4", credentials=self.creds)
         else:
-            print("Drive or Sheets auth failed.")
+            print("[Error] Drive or Sheets auth failed.")
 
     def create_spreadsheet(self, Filetitle, folder_id):
         """新しいスプレッドシートを作成し、指定したフォルダに移動"""
         if self.sheets_service is None:
-            print("Sheets serviceが初期化されていません。")
+            print("[Error] Sheets serviceが初期化されていません。")
             return None
 
         # スプレッドシート作成
@@ -213,11 +208,9 @@ class GoogleDriveAuth:
             .execute()
         )
         spreadsheet_id = request.get("spreadsheetId")
-        print(f"Spreadsheet created with ID: {spreadsheet_id}")
-
-        # フォルダに移動
+        print(f"[Info] Spreadsheet created with ID: {spreadsheet_id}")        # フォルダに移動
         file_metadata = {"parents": [folder_id]}
-
+        
         self.drive_service.files().update(
             fileId=spreadsheet_id,
             addParents=folder_id,
@@ -230,7 +223,7 @@ class GoogleDriveAuth:
     def write_data(self, spreadsheet_id, data):
         """スプレッドシートにデータを書き込む"""
         if self.sheets_service is None:
-            print("Sheets serviceが初期化されていません。")
+            print("[Error] Sheets serviceが初期化されていません。")
             return None
 
         try:
@@ -271,7 +264,7 @@ class GoogleDriveAuth:
     def AutoFilter(self, spreadsheet_id, data):
         """スプレッドシートにフィルターを設定する"""
         if self.sheets_service is None:
-            print("Sheets serviceが初期化されていません。")
+            print("[Error] Sheets serviceが初期化されていません。")
             return None
 
         # シートの情報を取得
@@ -314,47 +307,14 @@ class GoogleDriveAuth:
                     }
                 }
             }
-        ]
-
-        # リクエストをGoogle Sheets APIに送信
+        ]        # リクエストをGoogle Sheets APIに送信
         body = {"requests": requests}
-
+        
         self.sheets_service.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id, body=body
         ).execute()
-        print("フィルターを設定しました")
-
-
-class DiscordBOT:
-    def __init__(self, token):
-        self.token = token
-        self.channel_id = "1279375531992682556"
-
-        # Intents を設定
-        self.intents = discord.Intents.default()
-        self.intents.message_content = True  # メッセージの内容を受け取るための設定
-
-        self.bot = discord.Client(intents=self.intents)
-        self.bot.event(self.on_ready)
-
-    async def on_ready(self):
-        await self.send_message(
-            f"BOOK☆WALKERのセールリストを取得しました:\n{self.sheet_url}"
-        )
-        await self.bot.close()  # ボットを終了する
-
-    async def send_message(self, message):
-        channel = self.bot.get_channel(int(self.channel_id))
-        if channel:
-            await channel.send(message)
-            print("メッセージを送信しました")
-        else:
-            print("チャンネルが見つかりませんでした")
-
-    async def run(self, sheet_url):
-        self.sheet_url = sheet_url
-        await self.bot.start(self.token)
+        print("[Info] フィルターを設定しました")
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()

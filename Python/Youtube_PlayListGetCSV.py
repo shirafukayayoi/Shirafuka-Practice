@@ -25,7 +25,7 @@ def main():
 
     # spreadsheet_idがNoneでないことを確認
     if spreadsheet_id is None:
-        print("スプレッドシートが作成されていません。")
+        print("[Error] スプレッドシートが作成されていません。")
         return  # プログラムを終了
 
     # スプレッドシートにデータを書き込む
@@ -57,8 +57,8 @@ class YoutubePlayListGet:
         creds = None
 
         # 認証処理
-        if os.path.exists("youtube_PlayList_token.pickle"):
-            with open("youtube_PlayList_token.pickle", "rb") as token:
+        if os.path.exists("tokens/youtube_playList_token.pickle"):
+            with open("tokens/youtube_playList_token.pickle", "rb") as token:
                 creds = pickle.load(token)
 
         if not creds or not creds.valid:
@@ -69,7 +69,7 @@ class YoutubePlayListGet:
                     "credentials.json", SCOPES
                 )
                 creds = flow.run_local_server(port=8080)  # 認証フローを実行
-            with open("youtube_PlayList_token.pickle", "wb") as token:
+            with open("tokens/youtube_playList_token.pickle", "wb") as token:
                 pickle.dump(creds, token)
 
         return build("youtube", "v3", credentials=creds)  # YouTube APIのサービスを構築
@@ -105,7 +105,7 @@ class GoogleDriveAuth:
         "https://www.googleapis.com/auth/spreadsheets",
     ]
 
-    def __init__(self, token_path="token.pickle", credentials_path="credentials.json"):
+    def __init__(self, token_path="tokens/token.pickle", credentials_path="credentials.json"):
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.creds = None
@@ -133,12 +133,12 @@ class GoogleDriveAuth:
             self.drive_service = build("drive", "v3", credentials=self.creds)
             self.sheets_service = build("sheets", "v4", credentials=self.creds)
         else:
-            print("Drive or Sheets auth failed.")
+            print("[Error] Drive or Sheets auth failed.")
 
     def create_spreadsheet(self, playlist_name):
         now = datetime.now().strftime("%Y-%m-%d")
         if self.sheets_service is None:
-            print("Sheets serviceが初期化されていません。")
+            print("[Error] Sheets serviceが初期化されていません。")
             return None
 
         # 新しいスプレッドシートを作成
@@ -150,7 +150,7 @@ class GoogleDriveAuth:
             .execute()
         )
         spreadsheet_id = request.get("spreadsheetId")
-        print(f"Spreadsheet created with ID: {spreadsheet_id}")
+        print(f"[Info] Spreadsheet created with ID: {spreadsheet_id}")
 
         # 環境変数からフォルダIDを取得
         folder_id = os.environ["YOUTUBE_PLAYLIST_FOLDER_ID"]

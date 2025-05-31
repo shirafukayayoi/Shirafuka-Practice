@@ -51,8 +51,8 @@ class LightNovelEventManager:
 
     def authenticate_google(self):
         creds = None
-        if os.path.exists("token.json"):
-            creds = Credentials.from_authorized_user_file("token.json")
+        if os.path.exists("tokens/token.json"):
+            creds = Credentials.from_authorized_user_file("tokens/token.json")
 
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
@@ -63,7 +63,7 @@ class LightNovelEventManager:
                     ["https://www.googleapis.com/auth/calendar.events"],
                 )
                 creds = flow.run_local_server(port=0)
-            with open("token.json", "w") as token:
+            with open("tokens/token.json", "w") as token:
                 token.write(creds.to_json())
 
         return creds

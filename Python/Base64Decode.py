@@ -18,4 +18,4 @@ for i in range(len(decoded_data)):
     dec_char = chr(dec)  # 整数を文字に戻す
     data.append(dec_char)
 
-print("デコードされたデータ: " + "".join(data))
+print("[Info] デコードされたデータ: " + "".join(data))

@@ -32,7 +32,7 @@ class Webscraping:
             response = self.session.get(self.url)
             response.raise_for_status()
         except requests.exceptions.RequestException as e:
-            print(f"エラーが発生しました: {e}")
+            print(f"[Error] エラーが発生しました: {e}")
             return
 
         response.encoding = response.apparent_encoding
@@ -72,13 +72,13 @@ class Webscraping:
                             print(f"タイトル: {game_title}, 日付: {formatted_date}")
                             return game_title, formatted_date
                         else:
-                            print("日付のフォーマットが認識できませんでした。")
+                            print("[Error] 日付のフォーマットが認識できませんでした。")
                     else:
-                        print("ゲームタイトルまたは日付が見つかりませんでした。")
+                        print("[Error] ゲームタイトルまたは日付が見つかりませんでした。")
                 else:
-                    print("リンクが見つかりませんでした")
+                    print("[Error] リンクが見つかりませんでした")
             else:
-                print("指定されたクラスのボタンが見つかりませんでした")
+                print("[Error] 指定されたクラスのボタンが見つかりませんでした")
         except Exception as e:
             print(f"エラーが発生しました: {e}")
 
@@ -86,7 +86,7 @@ class Webscraping:
         try:
             response = self.session.get(href)
             response.raise_for_status()
-            print("リンクにアクセスしました")
+            print("[Info] リンクにアクセスしました")
         except requests.exceptions.RequestException as e:
             print(f"リンクへのアクセスでエラーが発生しました: {e}")
 
@@ -95,31 +95,29 @@ class GoogleCalendar:
     def __init__(self):
         self.creds = None  # 認証情報の初期化
         if os.path.exists(
-            "calendar_token.json"
+            "tokens/calendar_token.json"
         ):  # credentials.json ファイルに保存された認証情報をロードする
-            self.creds = Credentials.from_authorized_user_file("calendar_token.json")
+            self.creds = Credentials.from_authorized_user_file("tokens/calendar_token.json")
 
         # 認証情報(calendar_token.json)がない場合や期限切れの場合は、ユーザーに認証を求める
         if (
             not self.creds or not self.creds.valid
         ):  # cerds.validはtrueかfalseを返し、切れている場合はtrue
             if (
-                self.creds and self.creds.expired and self.creds.refresh_token
-            ):  # tokenがあった場合、期限切れかどうかを確認
+                self.creds and self.creds.expired and self.creds.refresh_token            ):  # tokenがあった場合、期限切れかどうかを確認
                 self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(  # tokenがない場合、認証を行う
-                    "credentials.json",
+                    "tokens/credentials.json",
                     ["https://www.googleapis.com/auth/calendar.events"],
                 )
                 self.creds = flow.run_local_server(port=0)
             # 認証情報を保存する
-            with open("calendar_token.json", "w") as token:
-                token.write(
+            with open("tokens/calendar_token.json", "w") as token:                token.write(
                     self.creds.to_json()
                 )  # 認証情報が入っているself.credsをjson形式に変換して保存する
         self.service = build("calendar", "v3", credentials=self.creds)
-        print("Google Calendarに接続しました")
+        print("[Info] Google Calendarに接続しました")
 
     def Add_event(self, game_title, formatted_date, url):
         event = {
@@ -131,7 +129,7 @@ class GoogleCalendar:
         self.service.events().insert(
             calendarId=os.getenv("OTAKATU_GOOGLECALENDAR_ID"), body=event
         ).execute()
-        print("Google Calendarにイベントを追加しました。")
+        print("[Info] Google Calendarにイベントを追加しました。")
 
 
 if __name__ == "__main__":

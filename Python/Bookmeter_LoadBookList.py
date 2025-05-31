@@ -44,9 +44,9 @@ class WebScraping:
             if "page=" in last_page_link:
                 last_page_number = last_page_link.split("page=")[-1]
             else:
-                print("ページ番号が見つかりませんでした")
+                print("[Error] ページ番号が見つかりませんでした")
         except Exception:
-            print("ページリンクの取得に失敗しました")
+            print("[Error] ページリンクの取得に失敗しました")
             return
 
         # 各ページのリンクを取得して処理
@@ -65,7 +65,7 @@ class WebScraping:
                         print(f"5秒後に再試行します...")
                         time.sleep(5)
                     else:
-                        print("最大試行回数に達しました。次のページに進みます。")
+                        print("[Info] 最大試行回数に達しました。次のページに進みます。")
                         req = None
                         break
 
@@ -85,7 +85,7 @@ class WebScraping:
                     base_link = "https://bookmeter.com" + href
                     self.all_links.append(base_link)
                 else:
-                    print("hrefが存在しません")
+                    print("[Error] hrefが存在しません")
 
         for link in self.all_links:
             try:
@@ -137,19 +137,18 @@ class GoogleSpreadsheet:
     def __init__(self, spreadsheet_id):
         self.scope = ["https://www.googleapis.com/auth/spreadsheets"]
         self.creds = None
-        if os.path.exists("sheet_token.json"):
+        if os.path.exists("tokens/sheet_token.json"):
             self.creds = Credentials.from_authorized_user_file(
-                "sheet_token.json", self.scope
+                "tokens/sheet_token.json", self.scope
             )
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
                 self.creds.refresh(Request())
-            else:
-                flow = InstalledAppFlow.from_client_secrets_file(
-                    "credentials.json", self.scope
+            else:                flow = InstalledAppFlow.from_client_secrets_file(
+                    "tokens/credentials.json", self.scope
                 )
-                self.creds = flow.run_local_server(port=0)
-            with open("sheet_token.json", "w") as token:
+            self.creds = flow.run_local_server(port=0)
+            with open("tokens/sheet_token.json", "w") as token:
                 token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)

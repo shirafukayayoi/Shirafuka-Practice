@@ -22,7 +22,7 @@ class charRec:
 
 
 # 現在の作業ディレクトリを確認
-print("現在の作業ディレクトリ:", os.getcwd())
+print("[Info] 現在の作業ディレクトリ:", os.getcwd())
 
 img = charRec()
 result = img.imgText()

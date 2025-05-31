@@ -36,3 +36,8 @@ numpy
 
 # ウェブソケット
 websocket-client
+
+# その他
+PyDrive
+moviepy
+yt-dlp

@@ -23,8 +23,8 @@ class GoogleSpreadSheet:
         self.creds = None
 
         # token.pickleが存在する場合はそれを読み込み、認証情報を再利用
-        if os.path.exists("token.pickle"):
-            with open("token.pickle", "rb") as token:
+        if os.path.exists("../tokens/token.pickle"):
+            with open("../tokens/token.pickle", "rb") as token:
                 self.creds = pickle.load(token)
 
         # 認証情報がない場合、または無効な場合、再認証を行う
@@ -38,7 +38,7 @@ class GoogleSpreadSheet:
                 self.creds = flow.run_local_server(port=0)
 
             # 新しい認証情報をtoken.pickleに保存
-            with open("token.pickle", "wb") as token:
+            with open("../tokens/token.pickle", "wb") as token:
                 pickle.dump(self.creds, token)
 
         # Google Sheets APIのサービスを作成

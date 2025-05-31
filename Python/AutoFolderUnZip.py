@@ -16,13 +16,13 @@ class Watcher:  # フォルダの監視を行うものをわかりやすくす�
         event_handler = Handler()
         self.observer.schedule(event_handler, self.DIRECTORY_TO_WATCH, recursive=True)
         self.observer.start()
-        print("監視中...")
+        print("[Info] 監視中...")
         try:  # tryを使うことで監視。終了するまでループ
             while True:
                 time.sleep(5)
         except:  # 例外が発生した場合は、監視を終了
             self.observer.stop()
-            print("問題が発生したため、監視を終了します。")
+            print("[Error] 問題が発生したため、監視を終了します。")
 
         self.observer.join()  # 監視が終わるのを待つ
 

@@ -24,9 +24,9 @@ class GoogleSpreadsheet:
         ]
 
         self.creds = None
-        if os.path.exists("sheet_token.json"):
+        if os.path.exists("../tokens/sheet_token.json"):
             self.creds = Credentials.from_authorized_user_file(
-                "sheet_token.json", self.scope
+                "../tokens/sheet_token.json", self.scope
             )
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
@@ -36,7 +36,7 @@ class GoogleSpreadsheet:
                     "credentials.json", self.scope
                 )
                 self.creds = flow.run_local_server(port=0)
-            with open("sheet_token.json", "w") as token:
+            with open("../tokens/sheet_token.json", "w") as token:
                 token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
@@ -50,12 +50,12 @@ class GoogleSpreadsheet_Drive:
     ]
 
     def __init__(
-        self, token_path="token.pickle", credentials_path="client_secret.json"
+        self, token_path="tokens/token.pickle", credentials_path="client_secret.json"
     ):
         self.token_path = token_path
         self.credentials_path = credentials_path
         self.sheet_creds = Credentials.from_service_account_file(
-            "sheet_token.json", scopes=self.SCOPES
+            "../tokens/sheet_token.json", scopes=self.SCOPES
         )
         self.creds = None
         self.drive = None
@@ -86,7 +86,7 @@ class GoogleSpreadsheet_Drive:
             self.sheets = build("sheets", "v4", credentials=self.creds)
             self.client = gspread.authorize(self.creds)
         else:
-            print("Drive or Sheets auth failed.")
+            print("[Error] Drive or Sheets auth failed.")
 
     def get_drive_service(self):
         """Google Drive APIのサービスインスタンスを返すメソッド"""
@@ -101,13 +101,13 @@ class GoogleSpreadsheet_Drive:
         if self.sheets:
             return self.sheets
         else:
-            print("Sheets service is not available.")
+            print("[Error] Sheets service is not available.")
             return None
 
     # Googleスプレッドシートを作成する
     def create_spreadsheet(self, title):
         if not self.sheets:
-            print("Sheets service is not available.")
+            print("[Error] Sheets service is not available.")
             return None
 
         spreadsheet = {"properties": {"title": title}}
@@ -163,7 +163,7 @@ class GoogleSpreadsheet_Drive:
         last_column_alp = num2alpha(last_column_num)
         print(f"最終列のアルファベットは{last_column_alp}です")
         sheet.set_basic_filter(f"A1:{last_column_alp}1")
-        print("フィルターを設定しました")
+        print("[Info] フィルターを設定しました")
 
     # 関数を追加する
     def white_function(self, spreadsheet_id):

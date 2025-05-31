@@ -88,9 +88,9 @@ class GoogleSpreadsheet:
     def __init__(self, spreadsheet_id):
         self.scope = ["https://www.googleapis.com/auth/spreadsheets"]
         self.creds = None
-        if os.path.exists("sheet_token.json"):
+        if os.path.exists("tokens/sheet_token.json"):
             self.creds = Credentials.from_authorized_user_file(
-                "sheet_token.json", self.scope
+                "tokens/sheet_token.json", self.scope
             )
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
@@ -100,7 +100,7 @@ class GoogleSpreadsheet:
                     "credentials.json", self.scope
                 )
                 self.creds = flow.run_local_server(port=0)
-            with open("sheet_token.json", "w") as token:
+            with open("tokens/sheet_token.json", "w") as token:
                 token.write(self.creds.to_json())
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
@@ -149,7 +149,7 @@ class GoogleSpreadsheet:
         service.spreadsheets().batchUpdate(
             spreadsheetId=spreadsheet_id, body=body
         ).execute()
-        print("フィルターを設定しました")
+        print("[Info] フィルターを設定しました")
 
 
 async def main():

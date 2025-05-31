@@ -24,7 +24,7 @@ def generate_playlist(yt_dlp_path, url, output_file):
     ]
     proc_list = subprocess.run(cmd_list, capture_output=True, text=True)
     if proc_list.returncode != 0:
-        print("Error fetching playlist IDs:", proc_list.stderr.strip())
+        print("[Error] Error fetching playlist IDs:", proc_list.stderr.strip())
         return
 
     data = json.loads(proc_list.stdout)
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     output_file  = "fb2k_youtube_playlist.m3u8"
 
     if not yt_dlp_path or not url or not output_file:
-        print("すべての項目を正しく入力してください。")
+        print("[Error] すべての項目を正しく入力してください。")
         sys.exit(1)
 
     generate_playlist(yt_dlp_path, url, output_file)

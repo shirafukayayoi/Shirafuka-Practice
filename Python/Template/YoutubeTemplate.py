@@ -28,7 +28,7 @@ class YoutubeTemplate:
         video_id = parse_qs(parsed_url.query).get("v")
 
         if not video_id:
-            print("無効なURLです。動画IDが見つかりません。")
+            print("[Error] 無効なURLです。動画IDが見つかりません。")
             return
 
         video_id = video_id[0]
@@ -44,7 +44,7 @@ class YoutubeTemplate:
         data = response.json()
 
         if "items" not in data or len(data["items"]) == 0:
-            print("動画情報が見つかりません。")
+            print("[Error] 動画情報が見つかりません。")
             return
 
         video_info = data["items"][0]["snippet"]
@@ -73,7 +73,7 @@ class YoutubeTemplate:
                     f"タイトル: {title}\n更新日: {published_at}\n予定開始時間 (Asia/Tokyo): {scheduled_start_time_tokyo.isoformat()}"
                 )
             else:
-                print("予定開始時間が見つかりません。")
+                print("[Error] 予定開始時間が見つかりません。")
         else:
             print(
                 f"タイトル: {title}\n更新日: {published_at}\nこの動画は配信予定のライブではありません。"

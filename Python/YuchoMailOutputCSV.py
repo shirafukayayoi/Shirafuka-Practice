@@ -1,4 +1,5 @@
 import base64
+import csv
 import os
 import re
 
@@ -33,41 +34,15 @@ def gmail_login():
     return service
 
 
-def spreadsheet_login():
-    credentials_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "tokens", "credentials.json"
-    )
-    sheet_token_path = os.path.join(
-        os.path.dirname(os.path.abspath(__file__)), "..", "tokens", "sheet_token.json"
-    )
-    SCOPES = ["https://www.googleapis.com/auth/spreadsheets"]
-    creds = None
-    if os.path.exists(sheet_token_path):
-        creds = Credentials.from_authorized_user_file(sheet_token_path, SCOPES)
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(credentials_path, SCOPES)
-            creds = flow.run_local_server(port=0)
-        with open(sheet_token_path, "w") as token:
-            token.write(creds.to_json())
-    client = gspread.authorize(creds)
-    spreadsheet = client.open_by_key(os.getenv("YUCHO_SHEET"))
-    sheet = spreadsheet.sheet1
-    return sheet, spreadsheet, sheet
-
-
-def get_yucho_message(service):
+def get_email_messages(service):
     results = (
         service.users()
         .messages()
         .list(
-            userId="me",
-            q='subject:"【ゆうちょデビット】ご利用のお知らせ"',
-            maxResults=5,
-        )
-        .execute()
+            userId="me", 
+            q="subject:【ゆうちょデビット】ご利用のお知らせ",
+            maxResults=10,
+        ).execute()
     )
     messages = results.get("messages", [])
 
@@ -78,16 +53,15 @@ def get_yucho_message(service):
             .messages()
             .list(
                 userId="me",
-                q='subject:"【ゆうちょデビット】ご利用のお知らせ"',
-                maxResults=5,
+                q="subject:【ゆうちょデビット】ご利用のお知らせ",
                 pageToken=page_token,
+                maxResults=10,
             )
-            .execute()
-        )
+        ).execute()
         messages.extend(results.get("messages", []))
 
-    messages = list(reversed(messages))
-
+    messages =list(reversed(messages))
+    
     pattern_date = r"\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2}"
     pattern_amount = r"\d{1,3}(,\d{3})*円"
     pattern_store = r"利用店舗\s+(.*)"
@@ -120,51 +94,26 @@ def get_yucho_message(service):
             amount_value = strings_amount.group().replace("円", "").replace(",", "")
             amounts.append(int(amount_value))
         if strings_store:
-            stores.append(strings_store.group(1))
+            # 店舗名から改行を削除して1行にする
+            store_name = strings_store.group(1).replace("\n", " ").replace("\r", " ").strip()
+            stores.append(store_name)
 
     return dates, amounts, stores
 
-
-def while_yuchomail_output(dates, amounts, stores, sheet):
-    if len(dates) != len(amounts) or len(dates) != len(stores):
-        print("[Error] The lengths of dates, amounts, and stores lists do not match.")
-        return
-
-    sheet.clear()
-    sheet.update("A1", [["日付", "金額", "店舗"]])
-    rows = [[dates[i], amounts[i], stores[i]] for i in range(len(dates))]
-    sheet.append_rows(rows)
-    for row in rows:
-        print(f"[Info] {row}")
-    sheet.update("H1", [["合計"]])
-    sheet.update("H2", [["=SUM(B2:B)"]], value_input_option="USER_ENTERED")
-    sheet.update(
-        "E1",
-        [
-            [
-                "店舗",
-            ]
-        ],
+def save_to_csv(dates, amounts, stores):
+    csv_path = os.path.join(
+        os.path.dirname(os.path.abspath(__file__)), "..", "yucho_mail_output.csv"
     )
-    sheet.update(
-        "F1",
-        [
-            [
-                "合計金額",
-            ]
-        ],
-    )
-    sheet.update(
-        "E2",
-        [["=ARRAYFORMULA({UNIQUE(C2:C), SUMIF(C2:C, UNIQUE(C2:C), B2:B)})"]],
-        value_input_option="USER_ENTERED",
-    )
-
+    with open(csv_path, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(["Date", "Amount", "Store"])
+        for date, amount, store in zip(dates, amounts, stores):
+            writer.writerow([date, amount, store])
+    print(f"[Info] CSV file saved at {csv_path}")
 
 if __name__ == "__main__":
-    os.chdir(os.path.dirname(os.path.abspath(__file__)))
     load_dotenv()
     service = gmail_login()
-    dates, amounts, stores = get_yucho_message(service)
-    sheet, spreadsheet, sheet = spreadsheet_login()
-    while_yuchomail_output(dates, amounts, stores, sheet)
+    dates, amounts, stores = get_email_messages(service)
+    save_to_csv(dates, amounts, stores)
+    print("[Info] Yucho mail output completed.")

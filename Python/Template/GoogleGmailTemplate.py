@@ -23,9 +23,9 @@ class Gmail:
         self.authenticate()
 
     def authenticate(self):
-        if os.path.exists("gmail_token.json"):
+        if os.path.exists("../tokens/gmail_token.json"):
             self.creds = Credentials.from_authorized_user_file(
-                "gmail_token.json", self.scope
+                "../tokens/gmail_token.json", self.scope
             )
         if not self.creds or not self.creds.valid:
             if self.creds and self.creds.expired and self.creds.refresh_token:
@@ -35,7 +35,7 @@ class Gmail:
                     "credentials.json", self.scope
                 )
                 self.creds = flow.run_local_server(port=0)
-            with open("gmail_token.json", "w") as token:
+            with open("../tokens/gmail_token.json", "w") as token:
                 token.write(self.creds.to_json())
         self.service = build("gmail", "v1", credentials=self.creds)
         print("認証完了")

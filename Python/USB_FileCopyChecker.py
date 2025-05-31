@@ -36,11 +36,11 @@ if __name__ == "__main__":
     while True:
         source_file_path = input("コピーするファイルのパスを入力してください: ")
         source_file_path = source_file_path.strip('"')  # 余分な引用符を削除
-        print("USBの接続を待機しています...")
+        print("[Info] USBの接続を待機しています...")
         usb_drive = detect_usb_connection()
 
         # USBにファイルをコピー
         copy_file_to_usb(usb_drive, source_file_path)
 
         # 処理が終わったら再度ループ
-        print("処理が完了しました。次のファイルをコピーする準備ができました。")
+        print("[Info] 処理が完了しました。次のファイルをコピーする準備ができました。")

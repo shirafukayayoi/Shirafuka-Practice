@@ -27,7 +27,7 @@ def replace_nouns_with_ja_jp(text):
 def process_file(file_path):
     # ファイルの存在確認
     if not os.path.exists(file_path):
-        print("エラー: 指定されたファイルが存在しません。")
+        print("[Error] エラー: 指定されたファイルが存在しません。")
         return
 
     try:

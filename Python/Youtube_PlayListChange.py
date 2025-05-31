@@ -23,19 +23,19 @@ def main():
     url = input("GoogleスプレッドシートのURLを入力してください: ")
     spreadsheet_id = extract_spreadsheet_id(url)
     if not spreadsheet_id:
-        print("無効なスプレッドシートURLです。処理を終了します。")
+        print("[Error] 無効なスプレッドシートURLです。処理を終了します。")
         return
 
     google_spreadsheet = GoogleSpreadsheet(spreadsheet_id)
     video_ids = google_spreadsheet.read_data()
     if not video_ids:
-        print("スプレッドシートから動画IDを取得できませんでした。処理を終了します。")
+        print("[Error] スプレッドシートから動画IDを取得できませんでした。処理を終了します。")
         return
 
     playlist_url = input("プレイリストのURLを入力してください: ")
     playlist_id = extract_playlist_id(playlist_url)
     if not playlist_id:
-        print("無効なプレイリストURLです。処理を終了します。")
+        print("[Error] 無効なプレイリストURLです。処理を終了します。")
         return
 
     youtube_playlist_get = YoutubePlayListGet()
@@ -70,7 +70,7 @@ class GoogleSpreadsheet:
             "https://www.googleapis.com/auth/drive",
         ]
         self.creds = Credentials.from_service_account_file(
-            "service_token.json", scopes=self.scope
+            "tokens/service_token.json", scopes=self.scope
         )
         self.client = gspread.authorize(self.creds)
         self.spreadsheet = self.client.open_by_key(spreadsheet_id)
