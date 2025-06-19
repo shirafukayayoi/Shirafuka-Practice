@@ -167,6 +167,33 @@ PC版のGboardをスマホでも使えるようにするためのPython。
 指定したファイルを自動的に[GigaFile便](https://gigafile.nu)にアップロードするPython。  
 実行したらURLが出力されます。
 
+### GithubRepository_downloader.py
+
+`Add 2025/06/19`  
+指定したGitHubユーザーの全リポジトリを自動的にダウンロード・解凍するPython。  
+パブリックリポジトリとプライベートリポジトリの両方に対応しています。
+
+**機能:**
+
+- 指定ユーザーの全リポジトリを一括ダウンロード
+- ZIPファイルの自動解凍とフォルダ整理
+- プライベートリポジトリへの対応（Personal Access Token使用）
+- Windowsでのファイルアクセスエラー対策
+- GitHub APIレート制限への配慮
+- 既存フォルダのスキップ機能
+
+**必要な設定:**
+`.env`ファイルに以下を設定：
+
+```
+GITHUB_TOKEN=your_personal_access_token_here
+```
+
+**Personal Access Tokenの権限:**
+
+- `repo` (Full control of private repositories)
+- `public_repo` (Access public repositories)
+
 ### LightNovel_CSV.py
 
 `Add 2024/10/02/`  
