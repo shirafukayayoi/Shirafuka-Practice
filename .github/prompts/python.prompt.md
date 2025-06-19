@@ -1,6 +1,7 @@
 ---
 mode: "agent"
 description: "指定された規約（日本語コメント、接頭辞付きprint文）に従ってPythonコードを生成します。"
+tools: ["codebase"]
 ---
 
 あなたは、与えられた規約を厳密に守る、熟練したPython開発者です。
