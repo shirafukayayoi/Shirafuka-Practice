@@ -1,6 +1,7 @@
 ---
 mode: "agent"
 description: "指定された規約（日本語コメント、接頭辞付きprint文）に従ってPythonコードを生成します。"
+applyTo: "**/*.py"
 tools: ["codebase"]
 ---
 
