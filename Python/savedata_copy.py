@@ -14,19 +14,19 @@ class SavedataCopy:
         try:
             folders = [f.name for f in os.scandir(self.src_dir) if f.is_dir()]
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"[Error] An error occurred: {e}")
             return None
         for folder in folders:
             for target in self.target_folders:
                 # 通常のターゲットフォルダをチェック
                 target_path = os.path.join(self.src_dir, folder, target)
                 if os.path.exists(target_path) and os.path.isdir(target_path):
-                    print(f"'{target}' folder found in: {target_path}")
+                    print(f"[Info] '{target}' folder found in: {target_path}")
 
                 # www/save フォルダをチェック
                 www_save_path = os.path.join(self.src_dir, folder, "www")
                 if os.path.exists(www_save_path) and os.path.isdir(www_save_path):
-                    print(f"'www/save' folder found in: {www_save_path}")
+                    print(f"[Info] 'www/save' folder found in: {www_save_path}")
         try:
             backup_folder = "G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ"
             # 指定の組み合わせだけ削除
@@ -45,7 +45,7 @@ class SavedataCopy:
                 "G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ", exist_ok=True
             )
             print(
-                f"Created folder: G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ"
+                f"[Info] Created folder: G:\\マイドライブ\\バッグアップ\\ノベルゲーセーブデータ"
             )
             for folder in folders:
                 for target in self.target_folders:
@@ -95,11 +95,11 @@ class SavedataCopy:
                                     shutil.copy2(src_item_path, dest_item_path)
             return data_folder
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"[Error] An error occurred: {e}")
             return None
 
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"[Error] An error occurred: {e}")
             return
 
 
