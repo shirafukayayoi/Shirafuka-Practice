@@ -5,7 +5,7 @@
 これは白深やよいが練習で作ったプログラムを置いておく場所です。  
 PythonやNode.jsを使っているので、そのプログラムを置いておきます。  
 自分が少しずつ覚えながら作っているコードなので、コメントが沢山ありますが注意してください。  
-**Chenge Log:**
+**Change Log:**
 
 - `2025/01/07`:Googleスプレッドシート関係の認証を変更(サービスアカウントを使用しない形に変えた)
 - `2025/05/31`:tokenのパスを変更。
@@ -72,7 +72,7 @@ Googleスプレットシートに出力されます。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information](https://github.com/shirafukayayoi/BOOK-WALKER_Sale_Information)
 
-**chenge log:**
+**Change Log:**
 
 - `2024/08/02`:金額を数値として取得できるようにした。
 
@@ -109,7 +109,7 @@ Googleスプレットシートに出力されます。
 └── main.css
 ```
 
-**chenge log:**
+**Change Log:**
 
 - `2024/07/17`:cmdからディレクトリを入力できるようにした。
 - `2025/01/07`:`ImportOS_DirectoryText.py`から`DirectoryText.py`に変更
@@ -131,7 +131,7 @@ csvファイルに出力されます。
 タイトル,サークル名,ジャンル
 ```
 
-**chenge log:**
+**Change Log:**
 
 - `2024/07/28`:GoogleSheetに出力するようにした。
 - `2025/02/01`:seleniumからplaywrightに移行、Cookieがあれば使用しログインするようにした。
@@ -267,7 +267,7 @@ exe化にも対応しており、PyInstallerでビルドすることでスタン
 パスワードは????でした。
 ```
 
-**Chenge Log:**
+**Change Log:**
 
 - `2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
 
@@ -379,7 +379,7 @@ yt-dlpを使って動画をダウンロードするPython。
 詳しくはこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/YuchoMailOutput](https://github.com/shirafukayayoi/YuchoMailOutput)
 
-**Chenge Log:**
+**Change Log:**
 
 - `2024/12/18`:メッセージを古い順から取得するようにした。
 - `2025/01/04`:金額が全て202円になってしまう問題を解消、ファイルのダブルクリックで実行できるようにした。
@@ -425,7 +425,7 @@ GoogleCalendarに接続するためのテンプレート。
 - イベントを取得する
 - CSVファイルからイベントを追加する
 
-**Chenge Log:**
+**Change Log:**
 
 - `2024/12/08`:場所も追加できるようにした。
 
