@@ -83,6 +83,34 @@ Googleスプレットシートに出力されます。
 使い方はこのレポジトリを見てください。  
 [https://github.com/shirafukayayoi/Bookmeter_LoadBookList](https://github.com/shirafukayayoi/Bookmeter_LoadBookList)
 
+### Bookmeter_link.py
+
+`Add 2025/07/03`  
+[読書メーター](https://bookmeter.com/)のユーザーページから読んだ本と積読本の情報を取得し、[BOOK☆WALKER](https://bookwalker.jp/)の該当ページでウィッシュリストに自動追加するPython。  
+PlaywrightとBOOK☆WALKERのアカウント情報が必要です。
+
+**機能:**
+
+- 読書メーターから読んだ本と積読本のリンクを自動取得
+- 各本のページからBOOK☆WALKERのリンクを抽出
+- BOOK☆WALKERに自動ログイン
+- 各書籍のウィッシュリストに自動でチェックを入れる
+- 既にチェック済みの場合は自動的にスキップ
+- リトライ機能とエラーハンドリング
+
+**必要な環境変数:**
+
+```
+BOOKWALKER_EMAIL=your_email@example.com
+BOOKWALKER_PASSWORD=your_password
+```
+
+**注意事項:**
+
+- スクリプト内のユーザーID（`1291485`）を自分のIDに変更する必要があります
+- 大量の書籍がある場合、処理に時間がかかります
+- 現在はヘッドレスモードが無効（`headless=False`）になっています
+
 ### DirectoryText.py
 
 `Add 2024/06/03`  

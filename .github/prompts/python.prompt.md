@@ -1,7 +1,7 @@
 ---
 mode: "agent"
 description: "指定された規約（日本語コメント、接頭辞付きprint文）に従ってPythonコードを生成し、変更時にREADMEのChangeLogを更新します。最新のライブラリやフレームワークの情報を取得してコード生成に活用します。"
-applyTo: "**/*.py"
+applyTo: ["**/*.py", "**/*.md"]
 tools:
   [
     "codebase",
@@ -84,7 +84,6 @@ async def hello(interaction: discord.Interaction):
 
 2. **print文のフォーマット**
    標準出力にメッセージを表示する`print`文は、必ず以下のどちらかの形式に従ってください。
-
    - 情報や通常のログを出力する場合: `print("[Info] <メッセージ>")`
    - エラーメッセージを出力する場合: `print("[Error] <メッセージ>")`
 
