@@ -409,8 +409,8 @@ class Bookmeter_getLinkList:
                                 if any(indicator in element_text for indicator in script_indicators):
                                     continue
                                 if ('"@context"' in element_text and '"@type"' in element_text) or \
-                                   ('schema.org' in element_text) or \
-                                   (element_text.count('"') > 10 and element_text.count('{') > 3):
+                                    ('schema.org' in element_text) or \
+                                    (element_text.count('"') > 10 and element_text.count('{') > 3):
                                     continue
                                 if len(element_text.strip()) > 20 and any(suspicious in element_text for suspicious in suspicious_texts):
                                     continue
