@@ -378,6 +378,22 @@ InstagramのNoteを`playwright`を使い更新させるPython。
 指定した動画の再生スピードを変更するPython。  
 ディレクトリに`output.mp4`が出力される。
 
+### vertical_converter.py
+
+`Add 2025/09/28`  
+横動画を縦動画（ショート動画形式）に変換するPython。  
+元の動画を前景として中央に配置し、背景には元の動画を拡大・暗化・ぼかししたバージョンを使用します。
+
+**主な機能:**
+
+- MoviePyとOpenCVを使用した高品質な動画変換
+- 横幅を画面いっぱいに使用した前景動画
+- OpenCVのGaussianBlurを使用したぼかし背景効果
+- デフォルト解像度: 1080×1920（カスタマイズ可能）
+- 音声も含めた完全な動画変換
+
+**必要なライブラリ:** moviepy, opencv-python, numpy
+
 ### Youtube_PlayListChange.py
 
 `Add 2024/10/10`  

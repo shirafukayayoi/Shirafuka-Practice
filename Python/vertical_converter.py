@@ -1,6 +1,28 @@
 import os
 
+import cv2
+import numpy as np
 from moviepy.editor import CompositeVideoClip, VideoFileClip, vfx
+
+
+def blur_frame(frame, blur_strength=27):
+    """
+    OpenCVを使用してフレームにガウシアンブラーを適用する関数
+    
+    Args:
+        frame: 入力フレーム（numpy配列）
+        blur_strength: ぼかしの強度（奇数である必要がある）
+    
+    Returns:
+        ぼかしが適用されたフレーム
+    """
+    # blur_strengthが偶数の場合、奇数に変換
+    if blur_strength % 2 == 0:
+        blur_strength += 1
+    
+    # OpenCVのGaussianBlurでぼかし効果を適用
+    blurred = cv2.GaussianBlur(frame, (blur_strength, blur_strength), 0)
+    return blurred
 
 
 def generate_vertical_video_with_background(input_path, output_path, vertical_resolution=(1080, 1920)):
@@ -40,10 +62,11 @@ def generate_vertical_video_with_background(input_path, output_path, vertical_re
     background_clip = original_clip.copy() \
         .fx(vfx.resize, newsize=(resized_bg_width, H)) \
         .fx(vfx.crop, width=W, height=H, x_center=x_center_bg, y_center=y_center_bg) \
-        .fx(vfx.colorx, 0.5)
+        .fx(vfx.colorx, 0.5) \
+        .fl_image(blur_frame)
         
     # vfx.colorx(0.5) で明るさを少し落とし、前景を目立たせる
-    # 注意: MoviePy 1.0.3ではgaussian_blurが利用できないため、ぼかし効果は除外
+    # fl_image(blur_frame) でOpenCVを使用してガウシアンブラー効果を適用
     
     # --- 3. 前景のクリップを作成 (中央に配置) ---
     
