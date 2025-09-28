@@ -1,5 +1,7 @@
-from moviepy.editor import VideoFileClip, CompositeVideoClip, vfx
 import os
+
+from moviepy.editor import CompositeVideoClip, VideoFileClip, vfx
+
 
 def generate_vertical_video_with_background(input_path, output_path, vertical_resolution=(1080, 1920)):
     """
@@ -94,4 +96,5 @@ if __name__ == "__main__":
     INPUT_FILE = "movie.mp4" # 横動画のファイル名
     OUTPUT_FILE = "output_vertical.mp4" # 出力する縦動画のファイル名
     
+    generate_vertical_video_with_background(INPUT_FILE, OUTPUT_FILE)    
     generate_vertical_video_with_background(INPUT_FILE, OUTPUT_FILE)
