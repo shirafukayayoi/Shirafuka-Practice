@@ -5,7 +5,7 @@ import numpy as np
 from moviepy.editor import CompositeVideoClip, VideoFileClip, vfx
 
 
-def blur_frame(frame, blur_strength=27):
+def blur_frame(frame, blur_strength=23):
     """
     OpenCVを使用してフレームにガウシアンブラーを適用する関数
     
@@ -62,10 +62,10 @@ def generate_vertical_video_with_background(input_path, output_path, vertical_re
     background_clip = original_clip.copy() \
         .fx(vfx.resize, newsize=(resized_bg_width, H)) \
         .fx(vfx.crop, width=W, height=H, x_center=x_center_bg, y_center=y_center_bg) \
-        .fx(vfx.colorx, 0.5) \
+        .fx(vfx.colorx, 1.3) \
         .fl_image(blur_frame)
-        
-    # vfx.colorx(0.5) で明るさを少し落とし、前景を目立たせる
+
+    # vfx.colorx(1.3) で明るさを少し上げ、前景を目立たせる
     # fl_image(blur_frame) でOpenCVを使用してガウシアンブラー効果を適用
     
     # --- 3. 前景のクリップを作成 (中央に配置) ---
