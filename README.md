@@ -305,6 +305,37 @@ exe化にも対応しており、PyInstallerでビルドすることでスタン
 
 - `2024/07/17`:cmdからPDFのディレクトリとcountを入力できるようにした。
 
+### PDF_ShirafukaToolCLI.py
+
+`Add 2025/10/04`  
+指定したPDFを1ページずつ分割するためのCLIツール。  
+`--split_pdf`フラグを付けて起動すると、各ページを個別のPDFとして同じディレクトリに出力します。
+
+**主な機能:**
+
+- PDFをページ単位で切り出し、`<元ファイル名>_page_<番号>.pdf`として保存
+- 既存ファイルを上書きしないようファイル名を自動生成
+- エラー時に`[Error]`形式でメッセージを出力
+
+**現在の引数:**
+
+- `input_pdf` : 分割対象のPDFファイルのパス（必須）
+- `--split_pdf` : このフラグを付けるとページ単位で分割を実行
+
+今後は引数リストに項目を追加するだけでオプションを増やせるよう、順次拡張予定です。
+
+**使い方（PowerShell）:**
+
+```powershell
+python Python/PDF_ShirafukaToolCLI.py .\sample.pdf --split_pdf
+```
+
+**使い方（コマンドプロンプト）:**
+
+```cmd
+python Python\PDF_ShirafukaToolCLI.py sample.pdf --split_pdf
+```
+
 ### Process_Moniter.py
 
 `Add 2024/12/05`  
