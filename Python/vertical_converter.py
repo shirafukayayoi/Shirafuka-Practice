@@ -120,4 +120,3 @@ if __name__ == "__main__":
     OUTPUT_FILE = "output_vertical.mp4" # 出力する縦動画のファイル名
     
     generate_vertical_video_with_background(INPUT_FILE, OUTPUT_FILE)    
-    generate_vertical_video_with_background(INPUT_FILE, OUTPUT_FILE)
