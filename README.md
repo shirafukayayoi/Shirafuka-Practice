@@ -437,6 +437,12 @@ Youtubeのプレイリストの中身を消し、特定のGoogleスプレッド�
 
 という形式になっていなければいけない。
 
+### YoutubeLrcConverter.py
+
+`Add 2026/01/10`  
+YouTube動画の英語字幕(VTT)を取得し、LRC形式に変換するPythonスクリプト。  
+yt-dlpで字幕だけをダウンロードし、タイムスタンプをLRC形式に変換して保存します。
+
 ### Youtube_PlayListGetCSV
 
 `Add 2024/10/10`  
