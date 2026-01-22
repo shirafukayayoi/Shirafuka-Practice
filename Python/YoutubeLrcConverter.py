@@ -1,3 +1,4 @@
+import html
 import os
 import re
 import subprocess
@@ -9,7 +10,7 @@ def download_vtt(video_url, ytdlp_path, output_name="subtitle"):
         ytdlp_path,
         "--write-subs",           # 字幕を書き込む
         "--skip-download",        # 動画本体はダウンロードしない
-        "--sub-lang", "en",       # 言語指定（英語の場合。適宜変更可）
+        "--sub-lang", "ja",       # 言語指定（日本語固定）
         "--output", output_name,
         video_url
     ]
@@ -23,34 +24,65 @@ def download_vtt(video_url, ytdlp_path, output_name="subtitle"):
         return expected_file
     return None
 
+def _to_lrc_timestamp(raw_time: str) -> str | None:
+    """VTT hh:mm:ss.mmm を LRC [mm:ss.xx] へ変換"""
+    match = re.match(r"(\d+):(\d{2}):(\d{2})\.(\d{3})", raw_time)
+    if not match:
+        return None
+    hh, mm, ss, mmm = match.groups()
+    total_mm = int(hh) * 60 + int(mm)
+    return f"[{total_mm:02}:{ss}.{mmm[:2]}]"
+
+
+def _clean_text(text: str) -> str:
+    # HTMLタグやスタイルを除去し、エンティティや不可視文字を掃除
+    text = re.sub(r"<[^>]+>", "", text)
+    text = html.unescape(text)
+    text = re.sub(r"[\u200b-\u200d\ufeff]", "", text)  # zero-width 系
+    text = re.sub(r"\s+", " ", text).strip()
+    return text
+
+
 def vtt_to_lrc(vtt_file, lrc_file):
     """VTT形式をLRC形式 [mm:ss.xx] に変換する"""
     with open(vtt_file, "r", encoding="utf-8") as f:
-        lines = f.readlines()
+        content = f.read()
 
-    lrc_content = []
-    # タイムスタンプの正規表現 (例: 00:00:02.123 --> 00:00:02.12)
-    time_re = re.compile(r"(\d{2}):(\d{2}):(\d{2})\.(\d{3})")
+    blocks = content.split("\n\n")
+    lrc_lines = []
+    seen_ts = set()  # 同一タイムスタンプは最初の1行だけ残す
+    last_text = ""
 
-    for i, line in enumerate(lines):
-        if "-->" in line:
-            match = time_re.search(line)
-            if match:
-                hh, mm, ss, mmm = match.groups()
-                # LRCは分:秒.ミリ秒[mm:ss.xx]が一般的。時間は分に合算
-                total_mm = int(hh) * 60 + int(mm)
-                lrc_time = f"[{total_mm:02}:{ss}.{mmm[:2]}]"
-                
-                # 次の行が歌詞テキスト
-                if i + 1 < len(lines):
-                    text = lines[i+1].strip()
-                    # HTMLタグ（♪やカラーコード）を除去
-                    text = re.sub(r'<[^>]+>', '', text)
-                    if text:
-                        lrc_content.append(f"{lrc_time}{text}")
+    for block in blocks:
+        lines = [ln.strip() for ln in block.splitlines() if ln.strip()]
+        if not lines:
+            continue
+
+        time_line = lines[0]
+        if "-->" not in time_line:
+            continue  # ヘッダやNOTEをスキップ
+
+        start_raw = time_line.split("-->")[0].strip()
+        lrc_time = _to_lrc_timestamp(start_raw)
+        if not lrc_time:
+            continue
+
+        if lrc_time in seen_ts:
+            continue
+
+        text_body = _clean_text(" ".join(lines[1:]))
+        if not text_body:
+            continue
+
+        if text_body == last_text:
+            continue  # 連続同一行を抑制
+
+        lrc_lines.append(f"{lrc_time}{text_body}")
+        seen_ts.add(lrc_time)
+        last_text = text_body
 
     with open(lrc_file, "w", encoding="utf-8") as f:
-        f.write("\n".join(lrc_content))
+        f.write("\n".join(lrc_lines))
     print(f"保存完了: {lrc_file}")
 
 def main():
