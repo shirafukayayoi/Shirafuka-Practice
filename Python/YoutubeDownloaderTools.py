@@ -100,7 +100,7 @@ class VideoVerticalConverter:
         background_clip = original_clip.copy() \
             .fx(vfx.resize, newsize=(resized_bg_width, H)) \
             .fx(vfx.crop, width=W, height=H, x_center=resized_bg_width / 2, y_center=H / 2) \
-            .fx(vfx.colorx, 1.3) \
+            .fx(vfx.colorx, 1.2) \
             .fl_image(self._blur_frame)
 
         # 前景クリップの作成
@@ -123,17 +123,38 @@ class VideoVerticalConverter:
             size=(W, H)
         ).set_duration(original_clip.duration)
 
-        # 動画ファイルとして書き出し
-        final_clip.write_videofile(
-            self.output_path, 
-            codec='libx264',
-            audio_codec='aac',
-            temp_audiofile='temp-audio.m4a',
-            remove_temp=True,
-            fps=original_clip.fps,
-            threads=4,
-            logger='bar'
-        )
+        # 動画ファイルとして書き出し（GPUアクセラレーション使用）
+        # NVIDIA GPUの場合: h264_nvenc
+        # AMD GPUの場合: h264_amf
+        # Intel Quick Syncの場合: h264_qsv
+        # GPUが利用できない場合は自動的にCPUにフォールバック
+        try:
+            # まずNVIDIA GPUを試す
+            final_clip.write_videofile(
+                self.output_path, 
+                codec='h264_nvenc',
+                audio_codec='aac',
+                temp_audiofile='temp-audio.m4a',
+                remove_temp=True,
+                fps=original_clip.fps,
+                preset='medium',  # NVENCプリセット: slow, medium, fast, hp, hq
+                logger='bar',
+                ffmpeg_params=['-rc:v', 'vbr', '-cq:v', '19', '-b:v', '5M', '-maxrate:v', '10M']
+            )
+            print("GPU (NVIDIA NVENC) でエンコードしました")
+        except Exception as e:
+            print(f"GPU エンコードに失敗しました。CPUエンコードにフォールバックします: {e}")
+            # GPUが使えない場合はCPUエンコード
+            final_clip.write_videofile(
+                self.output_path, 
+                codec='libx264',
+                audio_codec='aac',
+                temp_audiofile='temp-audio.m4a',
+                remove_temp=True,
+                fps=original_clip.fps,
+                threads=4,
+                logger='bar'
+            )
         original_clip.close()
         final_clip.close()
         print(f"\n縦型動画の生成が完了しました: {self.output_path}")
@@ -150,17 +171,33 @@ class GoogleDriveManager:
         self.service = build("drive", "v3", credentials=self.creds)
     
     def upload_file(self, file_path, folder_id):
-        file_metadata = {
-            "name": os.path.basename(file_path),
-            "parents": [folder_id] if folder_id else []
-        }
-        media = MediaFileUpload(file_path, resumable=True)
-        file = self.service.files().create(
-            body=file_metadata,
-            media_body=media,
-            fields="id"
-        ).execute()
-        print(f"ファイルがGoogle Driveにアップロードされました。ファイルID: {file.get('id')}")
+        try:
+            # フォルダーIDが指定されている場合、存在確認
+            if folder_id:
+                try:
+                    self.service.files().get(fileId=folder_id, fields="id, name").execute()
+                    print(f"アップロード先フォルダーを確認しました (ID: {folder_id})")
+                except Exception as e:
+                    print(f"エラー: 指定されたフォルダーID '{folder_id}' が見つかりません。")
+                    print(f"フォルダーが存在するか、サービスアカウントに共有されているか確認してください。")
+                    print(f"詳細: {e}")
+                    return None
+            
+            file_metadata = {
+                "name": os.path.basename(file_path),
+                "parents": [folder_id] if folder_id else []
+            }
+            media = MediaFileUpload(file_path, resumable=True)
+            file = self.service.files().create(
+                body=file_metadata,
+                media_body=media,
+                fields="id"
+            ).execute()
+            print(f"ファイルがGoogle Driveにアップロードされました。ファイルID: {file.get('id')}")
+            return file.get('id')
+        except Exception as e:
+            print(f"アップロード中にエラーが発生しました: {e}")
+            return None
 
 if __name__ == "__main__":
     user_input = input("YouTube動画のURLまたはローカルファイルのパスを入力してください: ").strip()
@@ -201,7 +238,15 @@ if __name__ == "__main__":
         # --- Google Driveアップロード ---
         drive_manager = GoogleDriveManager()
         folder_id = os.getenv("VIDEO_OUTPUT_FOLDER_ID")
-        drive_manager.upload_file(output_vertical_file, folder_id)
+        
+        if not folder_id:
+            print("\n警告: VIDEO_OUTPUT_FOLDER_ID が環境変数に設定されていません。")
+            print("Google Driveへのアップロードをスキップします。")
+        else:
+            print(f"\nGoogle Driveにアップロード中... (フォルダーID: {folder_id})")
+            result = drive_manager.upload_file(output_vertical_file, folder_id)
+            if not result:
+                print("Google Driveへのアップロードに失敗しました。ファイルはローカルに保持されます。")
         
         # --- ファイルのクリーンアップ ---
         print("\n不要なファイルを削除しています...")
