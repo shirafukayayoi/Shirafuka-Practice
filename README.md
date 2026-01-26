@@ -409,7 +409,7 @@ InstagramのNoteを`playwright`を使い更新させるPython。
 指定した動画の再生スピードを変更するPython。  
 ディレクトリに`output.mp4`が出力される。
 
-### vertical_converter.py
+### Vertical_converter.py
 
 `Add 2025/09/28`  
 横動画を縦動画（ショート動画形式）に変換するPython。  
