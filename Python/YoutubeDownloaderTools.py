@@ -2,6 +2,7 @@ import glob
 import os
 import os.path
 import subprocess
+import time
 
 import cv2
 from dotenv import load_dotenv
@@ -9,7 +10,9 @@ from moviepy.editor import CompositeVideoClip, VideoFileClip, vfx
 
 load_dotenv()
 
-from google.oauth2 import service_account
+from google.auth.transport.requests import Request
+from google.oauth2.credentials import Credentials
+from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -40,7 +43,7 @@ class YoutubeDownloader:
         output_template = os.path.join(output_path, "%(title)s.%(ext)s")
         command = [
             self.ytdlp_path,
-            "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
+            "-f", "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best[height<=1080]",
             "-o", output_template,
             "--no-playlist",  # プレイリストの場合は最初の1件のみ
             "--print", "after_move:filepath",  # ダウンロード後のファイルパスを出力
@@ -48,7 +51,7 @@ class YoutubeDownloader:
         ]
         
         try:
-            print(f"動画をダウンロード中...: {url}")
+            print(f"[Info] 動画をダウンロード中...: {url}")
             # Windows環境での文字化け対策: chcp 65001を使用してUTF-8モードで実行
             result = subprocess.run(
                 command, 
@@ -82,18 +85,18 @@ class YoutubeDownloader:
                     downloaded_filepath = max(after_files, key=os.path.getmtime)
             
             if downloaded_filepath and os.path.exists(downloaded_filepath):
-                print(f"ダウンロードが完了しました: {downloaded_filepath}")
+                print(f"[Info] ダウンロードが完了しました: {downloaded_filepath}")
                 return {'filepath': downloaded_filepath}
             else:
-                print("ダウンロードされたファイルが見つかりませんでした。")
+                print("[Error] ダウンロードされたファイルが見つかりませんでした。")
                 return None
                 
         except subprocess.CalledProcessError as e:
-            print(f"エラーが発生しました: {e}")
-            print(f"エラー出力: {e.stderr}")
+            print(f"[Error] エラーが発生しました: {e}")
+            print(f"[Error] エラー出力: {e.stderr}")
             return None
         except Exception as e:
-            print(f"予期しないエラーが発生しました: {e}")
+            print(f"[Error] 予期しないエラーが発生しました: {e}")
             return None
 
 class VideoVerticalConverter:
@@ -102,7 +105,7 @@ class VideoVerticalConverter:
         self.output_path = output_path
         self.width, self.height = resolution
 
-    def _blur_frame(self, frame, blur_strength=23):
+    def _blur_frame(self, frame, blur_strength=51):
         """フレームをぼかすための内部メソッド"""
         # ぼかしの強さが偶数なら奇数にする
         if blur_strength % 2 == 0:
@@ -113,7 +116,7 @@ class VideoVerticalConverter:
     def generate(self):
         """縦型動画を生成する"""
         if not os.path.exists(self.input_path):
-            print(f"エラー: 入力ファイルが見つかりません -> {self.input_path}")
+            print(f"[Error] 入力ファイルが見つかりません -> {self.input_path}")
             return
 
         original_clip = VideoFileClip(self.input_path)
@@ -121,11 +124,16 @@ class VideoVerticalConverter:
         W, H = self.width, self.height
         orig_W, orig_H = original_clip.size
         
-        # 背景クリップの作成
+        # 背景クリップの作成（解像度を下げてより荒く）
         scale_factor_bg = H / orig_H
         resized_bg_width = int(orig_W * scale_factor_bg)
         
+        # まず解像度を1/3に縮小してから戻すことで荒い質感に
+        temp_width = int(resized_bg_width / 3)
+        temp_height = int(H / 3)
+        
         background_clip = original_clip.copy() \
+            .fx(vfx.resize, newsize=(temp_width, temp_height)) \
             .fx(vfx.resize, newsize=(resized_bg_width, H)) \
             .fx(vfx.crop, width=W, height=H, x_center=resized_bg_width / 2, y_center=H / 2) \
             .fx(vfx.colorx, 1.2) \
@@ -169,9 +177,9 @@ class VideoVerticalConverter:
                 logger='bar',
                 ffmpeg_params=['-rc:v', 'vbr', '-cq:v', '19', '-b:v', '5M', '-maxrate:v', '10M']
             )
-            print("GPU (NVIDIA NVENC) でエンコードしました")
+            print("[Info] GPU (NVIDIA NVENC) でエンコードしました")
         except Exception as e:
-            print(f"GPU エンコードに失敗しました。CPUエンコードにフォールバックします: {e}")
+            print(f"[Info] GPU エンコードに失敗しました。CPUエンコードにフォールバックします: {e}")
             # GPUが使えない場合はCPUエンコード
             final_clip.write_videofile(
                 self.output_path, 
@@ -185,13 +193,13 @@ class VideoVerticalConverter:
             )
         original_clip.close()
         final_clip.close()
-        print(f"\n縦型動画の生成が完了しました: {self.output_path}")
+        print(f"[Info] 縦型動画の生成が完了しました: {self.output_path}")
 
 class GoogleDriveManager:
     
     def __init__(self):
         """
-        Google Drive APIマネージャーを初期化します（サービスアカウント認証）。
+        Google Drive APIマネージャーを初期化します（OAuth 2.0認証）。
         """
         self.SCOPES = [
             "https://www.googleapis.com/auth/drive.file",
@@ -199,14 +207,48 @@ class GoogleDriveManager:
             "https://www.googleapis.com/auth/drive.readonly",
         ]
         
-        # サービスアカウント認証を使用
-        token_path = os.path.join(TOKENS_DIR, 'service_token.json')
-        self.creds = service_account.Credentials.from_service_account_file(
-            token_path, scopes=self.SCOPES
-        )
+        # OAuth 2.0認証を使用
+        credentials_path = os.path.join(TOKENS_DIR, 'credentials.json')
+        token_path = os.path.join(TOKENS_DIR, 'drive_token.json')
+        
+        self.creds = None
+        
+        # トークンファイルが存在する場合は読み込む
+        if os.path.exists(token_path):
+            self.creds = Credentials.from_authorized_user_file(token_path, self.SCOPES)
+        
+        # 認証情報が無効または存在しない場合
+        if not self.creds or not self.creds.valid:
+            if self.creds and self.creds.expired and self.creds.refresh_token:
+                # トークンをリフレッシュ
+                try:
+                    self.creds.refresh(Request())
+                    print("[Info] トークンをリフレッシュしました")
+                except Exception as e:
+                    print(f"[Error] トークンのリフレッシュに失敗しました: {e}")
+                    self.creds = None
+            
+            if not self.creds:
+                # 新しい認証フローを開始
+                try:
+                    flow = InstalledAppFlow.from_client_secrets_file(
+                        credentials_path, self.SCOPES)
+                    self.creds = flow.run_local_server(port=0)
+                    print("[Info] 新しい認証を完了しました")
+                except Exception as e:
+                    print(f"[Error] 認証中にエラーが発生しました: {e}")
+                    raise
+            
+            # トークンを保存
+            try:
+                with open(token_path, 'w') as token:
+                    token.write(self.creds.to_json())
+                print(f"[Info] トークンを保存しました: {token_path}")
+            except Exception as e:
+                print(f"[Error] トークンの保存に失敗しました: {e}")
         
         self.service = build("drive", "v3", credentials=self.creds)
-        print("認証方式: サービスアカウント")
+        print("[Info] 認証方式: OAuth 2.0")
     
     def check_connection(self):
         """
@@ -217,10 +259,10 @@ class GoogleDriveManager:
         try:
             # Google Drive APIへの簡単なクエリを実行して接続を確認
             self.service.about().get(fields="user").execute()
-            print("✓ Google Drive APIへの接続に成功しました")
+            print("[Info] ✓ Google Drive APIへの接続に成功しました")
             return True
         except Exception as e:
-            print(f"✗ Google Drive APIへの接続に失敗しました: {e}")
+            print(f"[Error] ✗ Google Drive APIへの接続に失敗しました: {e}")
             return False
     
     def check_folder_access(self, folder_id):
@@ -231,7 +273,7 @@ class GoogleDriveManager:
         :return: アクセス可能な場合True、それ以外False
         """
         if not folder_id:
-            print("✗ フォルダーIDが指定されていません")
+            print("[Error] ✗ フォルダーIDが指定されていません")
             return False
         
         try:
@@ -240,24 +282,35 @@ class GoogleDriveManager:
             can_add_children = folder.get('capabilities', {}).get('canAddChildren', False)
             
             if can_add_children:
-                print(f"✓ フォルダー '{folder_name}' へのアクセスに成功しました")
+                print(f"[Info] ✓ フォルダー '{folder_name}' へのアクセスに成功しました")
                 return True
             else:
-                print(f"✗ フォルダー '{folder_name}' へのアップロード権限がありません")
+                print(f"[Error] ✗ フォルダー '{folder_name}' へのアップロード権限がありません")
                 return False
                 
         except Exception as e:
-            print(f"✗ フォルダーへのアクセスに失敗しました: {e}")
+            print(f"[Error] ✗ フォルダーへのアクセスに失敗しました: {e}")
             return False
     
-    def upload_file(self, file_path, folder_id):
+    def upload_file(self, file_path, folder_id, file_name=None):
+        """
+        Google Driveにファイルをアップロードします。
+        
+        :param file_path: アップロードするファイルのパス
+        :param folder_id: アップロード先のフォルダーID
+        :param file_name: Google Drive上のファイル名（指定しない場合は元のファイル名を使用）
+        :return: アップロードされたファイルID
+        """
         try:
             if folder_id:
                 self.service.files().get(fileId=folder_id, fields="id").execute()
-                print(f"アップロード先フォルダーを確認しました")
+                print(f"[Info] アップロード先フォルダーを確認しました")
+            
+            # ファイル名が指定されていない場合は元のファイル名を使用
+            upload_name = file_name if file_name else os.path.basename(file_path)
             
             file_metadata = {
-                "name": os.path.basename(file_path),
+                "name": upload_name,
                 "parents": [folder_id] if folder_id else []
             }
             media = MediaFileUpload(file_path, resumable=True)
@@ -266,10 +319,10 @@ class GoogleDriveManager:
                 media_body=media,
                 fields="id"
             ).execute()
-            print(f"ファイルがGoogle Driveにアップロードされました。ファイルID: {file.get('id')}")
+            print(f"[Info] ファイルがGoogle Driveにアップロードされました。ファイルID: {file.get('id')}")
             return file.get('id')
         except Exception as e:
-            print(f"アップロード中にエラーが発生しました: {e}")
+            print(f"[Error] アップロード中にエラーが発生しました: {e}")
             return None
 
 if __name__ == "__main__":
@@ -286,12 +339,12 @@ if __name__ == "__main__":
         drive_manager = GoogleDriveManager()
         if drive_manager.check_connection() and folder_id and drive_manager.check_folder_access(folder_id):
             drive_available = True
-            print("\n✓ Google Driveへのアップロードが利用可能です\n")
+            print("[Info] ✓ Google Driveへのアップロードが利用可能です\n")
         else:
-            print("\n✗ Google Driveへのアップロードはスキップされます\n")
+            print("[Error] ✗ Google Driveへのアップロードはスキップされます\n")
     except Exception as e:
-        print(f"✗ Google Drive接続に失敗しました: {e}")
-        print("\n✗ Google Driveへのアップロードはスキップされます\n")
+        print(f"[Error] ✗ Google Drive接続に失敗しました: {e}")
+        print("[Error] ✗ Google Driveへのアップロードはスキップされます\n")
     
     print("=" * 60)
     print("動画処理開始")
@@ -304,28 +357,28 @@ if __name__ == "__main__":
     
     if is_local_file:
         # ローカルファイルのパスが入力された場合
-        print(f"\nローカルファイルを使用します: {user_input}")
-        print("縦型動画の編集を開始します...")
+        print(f"[Info] ローカルファイルを使用します: {user_input}")
+        print("[Info] 縦型動画の編集を開始します...")
         downloaded_file = user_input
     else:
         # YouTubeのURLとして処理
-        print(f"\nYouTube動画をダウンロードします: {user_input}")
+        print(f"[Info] YouTube動画をダウンロードします: {user_input}")
         downloader = YoutubeDownloader()
         info = downloader.download_video(user_input)
         
         if info:
             downloaded_file = info.get('filepath')
             if not (downloaded_file and os.path.exists(downloaded_file)):
-                print("ダウンロードされたファイルが見つかりませんでした。")
+                print("[Error] ダウンロードされたファイルが見つかりませんでした。")
                 downloaded_file = None
         else:
-            print("ダウンロードに失敗したため、動画編集は行いません。")
+            print("[Error] ダウンロードに失敗したため、動画編集は行いません。")
             downloaded_file = None
     
     # ダウンロード済みまたはローカルファイルが存在する場合に編集を実行
     if downloaded_file:
-        print(f"\n動画ファイルを処理します: {downloaded_file}")
-        print("縦型動画の編集を開始します...")
+        print(f"[Info] 動画ファイルを処理します: {downloaded_file}")
+        print("[Info] 縦型動画の編集を開始します...")
 
         # --- 縦型動画変換 ---
         output_vertical_file = "output_vertical.mp4"
@@ -334,20 +387,33 @@ if __name__ == "__main__":
 
         # --- Google Driveアップロード ---
         if drive_available:
-            print(f"\nGoogle Driveにアップロード中... (フォルダーID: {folder_id})")
-            result = drive_manager.upload_file(output_vertical_file, folder_id)
+            print(f"[Info] Google Driveにアップロード中... (フォルダーID: {folder_id})")
+            # 元の動画ファイル名をそのまま使用
+            original_filename = os.path.basename(downloaded_file)
+            
+            result = drive_manager.upload_file(output_vertical_file, folder_id, file_name=original_filename)
             if not result:
-                print("Google Driveへのアップロードに失敗しました。ファイルはローカルに保持されます。")
+                print("[Error] Google Driveへのアップロードに失敗しました。ファイルはローカルに保持されます。")
         else:
-            print("\nGoogle Driveへのアップロードをスキップします（接続確認に失敗しました）")
+            print("[Info] Google Driveへのアップロードをスキップします（接続確認に失敗しました）")
         
         # --- ファイルのクリーンアップ ---
-        print("\n不要なファイルを削除しています...")
+        print("[Info] 不要なファイルを削除しています...")
+        # ファイルハンドルが完全に解放されるまで少し待機
+        time.sleep(1)
+        
         for file_to_delete in [output_vertical_file, downloaded_file if not is_local_file else None]:
             if file_to_delete and os.path.exists(file_to_delete):
-                os.remove(file_to_delete)
-                print(f"削除しました: {file_to_delete}")
+                try:
+                    os.remove(file_to_delete)
+                    print(f"[Info] 削除しました: {file_to_delete}")
+                except PermissionError:
+                    print(f"[Error] ファイルを削除できませんでした（使用中）: {file_to_delete}")
+                    print(f"[Error] 手動で削除してください。")
+                except Exception as e:
+                    print(f"[Error] ファイル削除中にエラーが発生しました: {file_to_delete}")
+                    print(f"[Error] エラー: {e}")
         
-        print("\n処理が完了しました！")
+        print("[Info] 処理が完了しました！")
 
 
