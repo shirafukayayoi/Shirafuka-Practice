@@ -1,11 +1,9 @@
 import glob
 import os
 import os.path
-import pickle
 import subprocess
 
 import cv2
-import numpy as np
 from dotenv import load_dotenv
 from moviepy.editor import CompositeVideoClip, VideoFileClip, vfx
 
@@ -14,6 +12,11 @@ load_dotenv()
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
+
+# スクリプトのディレクトリとプロジェクトルートを取得
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Shirafuka-Practiceディレクトリ
+TOKENS_DIR = os.path.join(PROJECT_ROOT, 'tokens')
 
 
 class YoutubeDownloader:
@@ -40,22 +43,47 @@ class YoutubeDownloader:
             "-f", "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "-o", output_template,
             "--no-playlist",  # プレイリストの場合は最初の1件のみ
+            "--print", "after_move:filepath",  # ダウンロード後のファイルパスを出力
             url
         ]
         
         try:
             print(f"動画をダウンロード中...: {url}")
-            result = subprocess.run(command, check=True, capture_output=True, text=True, encoding='utf-8', errors='replace')
+            # Windows環境での文字化け対策: chcp 65001を使用してUTF-8モードで実行
+            result = subprocess.run(
+                command, 
+                check=True, 
+                capture_output=True, 
+                text=True, 
+                encoding='utf-8', 
+                errors='replace'
+            )
+            
+            # 出力を表示
             print(result.stdout)
             
-            # ダウンロード後のファイルリストを取得
-            after_files = set(glob.glob(os.path.join(output_path, "*.mp4")))
-            new_files = after_files - before_files
+            # --print で出力されたファイルパスを取得
+            output_lines = result.stdout.strip().split('\n')
+            downloaded_filepath = None
+            for line in reversed(output_lines):
+                line = line.strip()
+                if line.endswith('.mp4') and os.path.exists(line):
+                    downloaded_filepath = line
+                    break
             
-            if new_files:
-                filepath = list(new_files)[0]
-                print(f"ダウンロードが完了しました: {filepath}")
-                return {'filepath': filepath}
+            # 見つからない場合は差分から取得
+            if not downloaded_filepath:
+                after_files = set(glob.glob(os.path.join(output_path, "*.mp4")))
+                new_files = after_files - before_files
+                if new_files:
+                    downloaded_filepath = list(new_files)[0]
+                elif after_files:
+                    # 最新の更新時刻のファイルを選択
+                    downloaded_filepath = max(after_files, key=os.path.getmtime)
+            
+            if downloaded_filepath and os.path.exists(downloaded_filepath):
+                print(f"ダウンロードが完了しました: {downloaded_filepath}")
+                return {'filepath': downloaded_filepath}
             else:
                 print("ダウンロードされたファイルが見つかりませんでした。")
                 return None
@@ -162,26 +190,71 @@ class VideoVerticalConverter:
 class GoogleDriveManager:
     
     def __init__(self):
+        """
+        Google Drive APIマネージャーを初期化します（サービスアカウント認証）。
+        """
         self.SCOPES = [
             "https://www.googleapis.com/auth/drive.file",
+            "https://www.googleapis.com/auth/drive",
+            "https://www.googleapis.com/auth/drive.readonly",
         ]
+        
+        # サービスアカウント認証を使用
+        token_path = os.path.join(TOKENS_DIR, 'service_token.json')
         self.creds = service_account.Credentials.from_service_account_file(
-            'tokens/service_token.json', scopes=self.SCOPES
+            token_path, scopes=self.SCOPES
         )
+        
         self.service = build("drive", "v3", credentials=self.creds)
+        print("認証方式: サービスアカウント")
+    
+    def check_connection(self):
+        """
+        Google Drive APIへの接続が可能かどうかを確認します。
+        
+        :return: 接続可能な場合True、それ以外False
+        """
+        try:
+            # Google Drive APIへの簡単なクエリを実行して接続を確認
+            self.service.about().get(fields="user").execute()
+            print("✓ Google Drive APIへの接続に成功しました")
+            return True
+        except Exception as e:
+            print(f"✗ Google Drive APIへの接続に失敗しました: {e}")
+            return False
+    
+    def check_folder_access(self, folder_id):
+        """
+        指定されたフォルダーへのアクセスが可能かどうかを確認します。
+        
+        :param folder_id: 確認するフォルダーのID
+        :return: アクセス可能な場合True、それ以外False
+        """
+        if not folder_id:
+            print("✗ フォルダーIDが指定されていません")
+            return False
+        
+        try:
+            folder = self.service.files().get(fileId=folder_id, fields="id, name, capabilities").execute()
+            folder_name = folder.get('name', '不明')
+            can_add_children = folder.get('capabilities', {}).get('canAddChildren', False)
+            
+            if can_add_children:
+                print(f"✓ フォルダー '{folder_name}' へのアクセスに成功しました")
+                return True
+            else:
+                print(f"✗ フォルダー '{folder_name}' へのアップロード権限がありません")
+                return False
+                
+        except Exception as e:
+            print(f"✗ フォルダーへのアクセスに失敗しました: {e}")
+            return False
     
     def upload_file(self, file_path, folder_id):
         try:
-            # フォルダーIDが指定されている場合、存在確認
             if folder_id:
-                try:
-                    self.service.files().get(fileId=folder_id, fields="id, name").execute()
-                    print(f"アップロード先フォルダーを確認しました (ID: {folder_id})")
-                except Exception as e:
-                    print(f"エラー: 指定されたフォルダーID '{folder_id}' が見つかりません。")
-                    print(f"フォルダーが存在するか、サービスアカウントに共有されているか確認してください。")
-                    print(f"詳細: {e}")
-                    return None
+                self.service.files().get(fileId=folder_id, fields="id").execute()
+                print(f"アップロード先フォルダーを確認しました")
             
             file_metadata = {
                 "name": os.path.basename(file_path),
@@ -200,6 +273,30 @@ class GoogleDriveManager:
             return None
 
 if __name__ == "__main__":
+    # --- Google Drive接続確認 ---
+    print("=" * 60)
+    print("Google Drive接続確認")
+    print("=" * 60)
+    
+    folder_id = os.getenv("VIDEO_OUTPUT_FOLDER_ID")
+    drive_available = False
+    drive_manager = None
+    
+    try:
+        drive_manager = GoogleDriveManager()
+        if drive_manager.check_connection() and folder_id and drive_manager.check_folder_access(folder_id):
+            drive_available = True
+            print("\n✓ Google Driveへのアップロードが利用可能です\n")
+        else:
+            print("\n✗ Google Driveへのアップロードはスキップされます\n")
+    except Exception as e:
+        print(f"✗ Google Drive接続に失敗しました: {e}")
+        print("\n✗ Google Driveへのアップロードはスキップされます\n")
+    
+    print("=" * 60)
+    print("動画処理開始")
+    print("=" * 60)
+    
     user_input = input("YouTube動画のURLまたはローカルファイルのパスを入力してください: ").strip()
     
     # ファイルパスかURLかを判定
@@ -236,30 +333,20 @@ if __name__ == "__main__":
         converter.generate()
 
         # --- Google Driveアップロード ---
-        drive_manager = GoogleDriveManager()
-        folder_id = os.getenv("VIDEO_OUTPUT_FOLDER_ID")
-        
-        if not folder_id:
-            print("\n警告: VIDEO_OUTPUT_FOLDER_ID が環境変数に設定されていません。")
-            print("Google Driveへのアップロードをスキップします。")
-        else:
+        if drive_available:
             print(f"\nGoogle Driveにアップロード中... (フォルダーID: {folder_id})")
             result = drive_manager.upload_file(output_vertical_file, folder_id)
             if not result:
                 print("Google Driveへのアップロードに失敗しました。ファイルはローカルに保持されます。")
+        else:
+            print("\nGoogle Driveへのアップロードをスキップします（接続確認に失敗しました）")
         
         # --- ファイルのクリーンアップ ---
         print("\n不要なファイルを削除しています...")
-        
-        # 変換後の縦型動画ファイルは常に削除
-        if os.path.exists(output_vertical_file):
-            os.remove(output_vertical_file)
-            print(f"削除しました: {output_vertical_file}")
-        
-        # YouTubeからダウンロードしたファイルの場合のみ削除（ローカルファイルは削除しない）
-        if not is_local_file and os.path.exists(downloaded_file):
-            os.remove(downloaded_file)
-            print(f"削除しました: {downloaded_file}")
+        for file_to_delete in [output_vertical_file, downloaded_file if not is_local_file else None]:
+            if file_to_delete and os.path.exists(file_to_delete):
+                os.remove(file_to_delete)
+                print(f"削除しました: {file_to_delete}")
         
         print("\n処理が完了しました！")
 
