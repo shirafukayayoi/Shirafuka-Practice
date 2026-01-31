@@ -402,7 +402,19 @@ if __name__ == "__main__":
         # ファイルハンドルが完全に解放されるまで少し待機
         time.sleep(1)
         
-        for file_to_delete in [output_vertical_file, downloaded_file if not is_local_file else None]:
+        # 削除対象のファイルリスト
+        files_to_delete = [output_vertical_file]
+        
+        # ローカルファイルでない場合（ダウンロードした場合）、ダウンロードファイルも削除
+        if not is_local_file and downloaded_file:
+            files_to_delete.append(downloaded_file)
+        
+        # .partファイルも検索して削除対象に追加
+        current_dir = os.path.dirname(downloaded_file) if downloaded_file else '.'
+        part_files = glob.glob(os.path.join(current_dir, "*.part"))
+        files_to_delete.extend(part_files)
+        
+        for file_to_delete in files_to_delete:
             if file_to_delete and os.path.exists(file_to_delete):
                 try:
                     os.remove(file_to_delete)
