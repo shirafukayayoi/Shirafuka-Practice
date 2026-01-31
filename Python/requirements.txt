@@ -37,6 +37,11 @@ numpy
 # ウェブソケット
 websocket-client
 
+# 動画プレーヤー（YoutubeVideoClipper用）
+# 注意: python-vlcを使用するには、別途VLC本体のインストールが必要です
+# VLCダウンロード: https://www.videolan.org/vlc/
+python-vlc
+
 # その他
 PyDrive
 moviepy
