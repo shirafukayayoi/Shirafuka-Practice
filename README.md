@@ -617,3 +617,35 @@ Youtubeに接続するためのテンプレート。
 **TemplateList:**
 
 - ライブ動画の配信開始時間の取得
+
+### ToolsUpdater.py
+
+`Add 2026/02/01`  
+Toolsフォルダー内のツール（yt-dlpなど）を自動更新するスクリプト。  
+GitHub Releases APIを使用して最新版をチェックし、安全に更新を行います。  
+**機能:**
+
+- バージョン確認（`--check`）
+- 特定ツールの更新（`--update --tool ツール名`）
+- 全ツールの更新（`--update-all`）
+- プロセス実行中の検出とスキップ
+- ダウンロード失敗時の自動ロールバック
+- GitHub認証（オプション）でAPIレート制限を緩和
+
+**使用例:**
+
+```bash
+# 全ツールのバージョンを確認
+python ToolsUpdater.py --check
+
+# yt-dlpを更新
+python ToolsUpdater.py --update --tool yt-dlp
+
+# 全ツールを更新
+python ToolsUpdater.py --update-all
+```
+
+**設定:**
+
+- 設定ファイル: [settings/tools_config.json](settings/tools_config.json)
+- GitHub認証（オプション）: [Python/.env](Python/.env) に `GITHUB_TOKEN` を設定

@@ -1,0 +1,11 @@
+[
+  {
+    "name": "yt-dlp",
+    "repo": "yt-dlp/yt-dlp",
+    "asset_name": "yt-dlp.exe",
+    "install_path": "Tools/yt-dlp.exe",
+    "version_command": ["--version"],
+    "enabled": true,
+    "description": "A feature-rich command-line audio/video downloader"
+  }
+]
