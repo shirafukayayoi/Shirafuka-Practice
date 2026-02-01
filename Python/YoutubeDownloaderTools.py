@@ -174,7 +174,7 @@ class VideoVerticalConverter:
                 remove_temp=True,
                 fps=original_clip.fps,
                 preset='medium',  # NVENCプリセット: slow, medium, fast, hp, hq
-                logger='bar',
+                verbose=False,  # FFmpegの詳細出力を抑制
                 ffmpeg_params=['-rc:v', 'vbr', '-cq:v', '19', '-b:v', '5M', '-maxrate:v', '10M']
             )
             print("[Info] GPU (NVIDIA NVENC) でエンコードしました")
@@ -189,7 +189,7 @@ class VideoVerticalConverter:
                 remove_temp=True,
                 fps=original_clip.fps,
                 threads=4,
-                logger='bar'
+                verbose=False  # FFmpegの詳細出力を抑制
             )
         original_clip.close()
         final_clip.close()
