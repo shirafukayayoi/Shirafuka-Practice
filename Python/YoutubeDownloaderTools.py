@@ -184,16 +184,21 @@ class VideoVerticalConverter:
         orig_H = video_info["height"]
         W, H = self.width, self.height
 
-        # 背景の計算
+        # 背景の計算（すべて偶数に丸める）
         scale_factor_bg = H / orig_H
-        resized_bg_width = int(orig_W * scale_factor_bg)
-        temp_width = int(resized_bg_width / 3)
-        temp_height = int(H / 3)
+        resized_bg_width = int(orig_W * scale_factor_bg) & ~1  # 偶数に丸める
+        temp_width = int(resized_bg_width / 3) & ~1  # 偶数に丸める
+        temp_height = int(H / 3) & ~1  # 偶数に丸める
 
-        # 前景の計算
-        foreground_width = W
+        # 前景の計算（すべて偶数に丸める）
+        foreground_width = W & ~1  # 偶数に丸める
         scale_factor_fg = foreground_width / orig_W
-        foreground_height = int(orig_H * scale_factor_fg)
+        foreground_height = int(orig_H * scale_factor_fg) & ~1  # 偶数に丸める
+
+        # オーバーレイ位置も偶数に丸める
+        crop_x = int((resized_bg_width - W) / 2) & ~1
+        overlay_x = int((W - foreground_width) / 2) & ~1
+        overlay_y = int((H - foreground_height) / 2) & ~1
 
         # フィルターグラフの構築
         filter_complex = (
@@ -203,7 +208,7 @@ class VideoVerticalConverter:
             f"scale_cuda=w={temp_width}:h={temp_height},"
             f"scale_cuda=w={resized_bg_width}:h={H},"
             f"hwdownload,format=yuv420p,"
-            f"crop={W}:{H}:{int((resized_bg_width - W) / 2)}:0,"
+            f"crop={W}:{H}:{crop_x}:0,"
             f"eq=brightness=0.2,"
             f"gblur=sigma=17[bg_blur];"
             # 前景処理
@@ -211,7 +216,7 @@ class VideoVerticalConverter:
             f"scale_cuda=w={foreground_width}:h={foreground_height},"
             f"hwdownload,format=yuv420p[fg_scaled];"
             # 合成
-            f"[bg_blur][fg_scaled]overlay=x=(W-w)/2:y=(H-h)/2"
+            f"[bg_blur][fg_scaled]overlay=x={overlay_x}:y={overlay_y}"
         )
 
         cmd = [
@@ -315,18 +320,18 @@ class VideoVerticalConverter:
         W, H = self.width, self.height
         orig_W, orig_H = original_clip.size
 
-        # 背景クリップの作成
+        # 背景クリップの作成（すべて偶数に丸める）
         scale_factor_bg = H / orig_H
-        resized_bg_width = int(orig_W * scale_factor_bg)
-        temp_width = int(resized_bg_width / 3)
-        temp_height = int(H / 3)
+        resized_bg_width = int(orig_W * scale_factor_bg) & ~1  # 偶数に丸める
+        temp_width = int(resized_bg_width / 3) & ~1  # 偶数に丸める
+        temp_height = int(H / 3) & ~1  # 偶数に丸める
 
         x_center = resized_bg_width / 2
         y_center = H / 2
-        x1 = x_center - W / 2
-        y1 = y_center - H / 2
-        x2 = x_center + W / 2
-        y2 = y_center + H / 2
+        x1 = int(x_center - W / 2) & ~1  # 偶数に丸める
+        y1 = int(y_center - H / 2) & ~1  # 偶数に丸める
+        x2 = int(x_center + W / 2) & ~1  # 偶数に丸める
+        y2 = int(y_center + H / 2) & ~1  # 偶数に丸める
 
         def process_frame(frame):
             frame = (frame * 1.2).clip(0, 255).astype("uint8")
@@ -340,18 +345,18 @@ class VideoVerticalConverter:
             .image_transform(process_frame)
         )
 
-        # 前景クリップの作成
-        foreground_width = W
+        # 前景クリップの作成（すべて偶数に丸める）
+        foreground_width = W & ~1  # 偶数に丸める
         scale_factor_fg = foreground_width / orig_W
-        foreground_height = int(orig_H * scale_factor_fg)
+        foreground_height = int(orig_H * scale_factor_fg) & ~1  # 偶数に丸める
 
         foreground_clip = original_clip.copy().resized(
             (foreground_width, foreground_height)
         )
 
-        # 合成
-        x_pos = (W - foreground_width) / 2
-        y_pos = (H - foreground_height) / 2
+        # 合成位置も偶数に丸める
+        x_pos = int((W - foreground_width) / 2) & ~1
+        y_pos = int((H - foreground_height) / 2) & ~1
 
         final_clip = CompositeVideoClip(
             [
