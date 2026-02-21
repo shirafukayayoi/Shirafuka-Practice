@@ -31,17 +31,17 @@ PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Shirafuka-Practiceディレクト�
 TOKENS_DIR = os.path.join(PROJECT_ROOT, "tokens")
 
 
-class YoutubeDownloader:
+class MediaDownloader:
     def __init__(self):
         self.ytdlp_path = os.getenv("YT-DLP_PATH")
 
     def download_video(self, url, output_path="."):
         """
-        指定されたURLから動画をMP4形式でダウンロードします。
+        指定された動画URLから動画をMP4形式でダウンロードします。
         外部のyt-dlp.exeを使用してダウンロードします。
         成功した場合、ダウンロード情報を返します。
 
-        :param url: ダウンロードする動画のURL
+        :param url: ダウンロードする動画URL
         :param output_path: 保存先のディレクトリ
         :return: ダウンロード情報 or None
         """
@@ -596,7 +596,7 @@ if __name__ == "__main__":
     print("=" * 60)
 
     user_input = input(
-        "YouTube動画のURLまたはローカルファイルのパスを入力してください: "
+        "動画URLまたはローカルファイルのパスを入力してください: "
     ).strip()
 
     # ファイルパスかURLかを判定
@@ -608,9 +608,9 @@ if __name__ == "__main__":
         print("[Info] 縦型動画の編集を開始します...")
         downloaded_file = user_input
     else:
-        # YouTubeのURLとして処理
-        print(f"[Info] YouTube動画をダウンロードします: {user_input}")
-        downloader = YoutubeDownloader()
+        # 動画URLとして処理
+        print(f"[Info] 動画をダウンロードします: {user_input}")
+        downloader = MediaDownloader()
         info = downloader.download_video(user_input)
 
         if info:

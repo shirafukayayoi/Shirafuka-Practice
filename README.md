@@ -454,15 +454,15 @@ yt-dlpで字幕だけをダウンロードし、タイムスタンプをLRC形�
 名前,URL
 ```
 
-### YoutubeDownloaderTools.py
+### MediaDownloaderTool.py
 
 `Add 2026/01/23`  
 yt-dlpでダウンロードした動画を縦型の動画にし、GoogleドライブにアップロードするPython。  
-YouTube URLまたはローカルファイルのパスを指定可能。
+動画URLまたはローカルファイルのパスを指定可能。
 
 **主な機能:**
 
-- yt-dlpを使用したYouTube動画の自動ダウンロード
+- yt-dlpを使用した動画URLからの自動ダウンロード
 - 横動画を縦型（ショート動画形式）に自動変換
   - **GPU高速化対応**: NVIDIA CUDA（scale_cuda, hwupload_cuda）を使用した高速処理
   - CPUフォールバック機能搭載（GPU処理失敗時に自動切替）
