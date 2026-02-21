@@ -175,6 +175,25 @@ csvファイルに出力されます。
 `Add 2024/11/10`  
 DMMのゲーム新作情報をGoogleカレンダーに登録するためのPython。
 
+### CalendarTextCli.py
+
+`Add 2026/02/21`  
+予定テキストをGeminiで解析し、Googleカレンダーに追加するCLI。  
+`--suggest` を付けると提案を表示し、承認時のみ追加します。
+
+**実行例:**
+
+```bash
+python Python/CalendarTextCli.py "明日18:30に渋谷で友達とご飯"
+python Python/CalendarTextCli.py --suggest "来週金曜 レポート提出"
+```
+
+**必要な準備:**
+
+- 環境変数 `GEMINI_API_KEY` を設定
+- `tokens/credentials.json`（Google OAuthクライアント情報）を配置
+- `tokens/calendar_ids.json` に `calendar_map` と `default_calendar_id` を設定
+
 ### fb2k_generate_playlist.py
 
 `Add 2025/04/25`  
