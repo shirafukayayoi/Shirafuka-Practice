@@ -1,6 +1,7 @@
 import json
 import os
 from datetime import datetime, timedelta
+from pathlib import Path
 from urllib.parse import urlencode
 
 import requests
@@ -13,6 +14,43 @@ from googleapiclient.discovery import build
 
 # 環境変数のロード
 load_dotenv()
+
+
+def load_calendar_id(category_name: str = "", legacy_key: str = "") -> str:
+    calendar_ids_path = (
+        Path(__file__).resolve().parent.parent / "tokens" / "calendar_ids.json"
+    )
+    if not calendar_ids_path.exists():
+        raise FileNotFoundError(
+            f"カレンダーID設定ファイルが見つかりません: {calendar_ids_path}"
+        )
+
+    with calendar_ids_path.open("r", encoding="utf-8") as f:
+        calendar_ids = json.load(f)
+
+    if isinstance(calendar_ids, dict) and isinstance(
+        calendar_ids.get("calendar_map"), dict
+    ):
+        if category_name:
+            mapped_id = calendar_ids["calendar_map"].get(category_name)
+            if mapped_id:
+                return mapped_id
+        default_id = calendar_ids.get("default_calendar_id")
+        if default_id:
+            return default_id
+
+    calendar_id = ""
+    if legacy_key:
+        calendar_id = calendar_ids.get(legacy_key, "")
+    if not calendar_id and category_name:
+        calendar_id = calendar_ids.get(category_name, "")
+    if not calendar_id:
+        calendar_id = calendar_ids.get("default", "")
+    if not calendar_id:
+        raise KeyError(
+            f"calendar_ids.json に '{category_name or legacy_key}' または default_calendar_id/default が設定されていません。"
+        )
+    return calendar_id
 
 
 def main():
@@ -33,7 +71,9 @@ class LightNovelEventManager:
     def __init__(self):
         self.year = 2024
         self.month = 10
-        self.calendar_id = os.environ["LightNovel_GoogleCalendar_ID"]
+        self.calendar_id = load_calendar_id(
+            category_name="ラノベ・漫画カレンダー", legacy_key="lightnovel"
+        )
         self.discord_webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
         self.creds = self.authenticate_google()
         self.service = build("calendar", "v3", credentials=self.creds)

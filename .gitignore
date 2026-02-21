@@ -1,32 +1,46 @@
+# Dependencies / package managers
 node_modules/
 package-lock.json
+
+# Python environments / build artifacts
 Python/.env
-token.pickle
-.vscode/settings.json
-Youtube_PlayList_token.pickle
-service_token.json
 Python/build/
 Python/dist/
+target/
 *.pyc
 *.spec
-credentials.json
-*.pickle
+
+# Editor / local IDE settings
+.vscode/settings.json
+
+# Logs
 *.log
+
+# Local credentials / tokens
+credentials.json
+service_token.json
 calendar_token.json
+gmail_token.json
+drive_token.json
+sheet_token.json
+token.pickle
+Youtube_PlayList_token.pickle
+*.pickle
+tokens/calendar_ids.json
+cookies.json
+dmm_cookies.json
+instagram_cookies.pkl
+
+# Executables / binaries / media outputs
 *.exe
 *.pdb
 *.mp4
 *.m4a
-target/
+
+# Local generated files / folders
 memo.py
-gmail_token.json
-drive_token.json
-sheet_token.json
-instagram_cookies.pkl
-cookies.json
-dmm_cookies.json
-GoogleAPI-v1/
 yucho_mail_output.csv
 fb2k_youtube_playlist.m3u8
+GoogleAPI-v1/
 downloaded_github_repos/
 tools/

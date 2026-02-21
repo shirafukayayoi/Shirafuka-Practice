@@ -1,6 +1,8 @@
+import json
 import os
 import re
 from datetime import datetime
+from pathlib import Path
 
 import requests
 from bs4 import BeautifulSoup
@@ -11,6 +13,43 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 
 load_dotenv()
+
+
+def load_calendar_id(category_name: str = "", legacy_key: str = "") -> str:
+    calendar_ids_path = (
+        Path(__file__).resolve().parent.parent / "tokens" / "calendar_ids.json"
+    )
+    if not calendar_ids_path.exists():
+        raise FileNotFoundError(
+            f"カレンダーID設定ファイルが見つかりません: {calendar_ids_path}"
+        )
+
+    with calendar_ids_path.open("r", encoding="utf-8") as f:
+        calendar_ids = json.load(f)
+
+    if isinstance(calendar_ids, dict) and isinstance(
+        calendar_ids.get("calendar_map"), dict
+    ):
+        if category_name:
+            mapped_id = calendar_ids["calendar_map"].get(category_name)
+            if mapped_id:
+                return mapped_id
+        default_id = calendar_ids.get("default_calendar_id")
+        if default_id:
+            return default_id
+
+    calendar_id = ""
+    if legacy_key:
+        calendar_id = calendar_ids.get(legacy_key, "")
+    if not calendar_id and category_name:
+        calendar_id = calendar_ids.get(category_name, "")
+    if not calendar_id:
+        calendar_id = calendar_ids.get("default", "")
+    if not calendar_id:
+        raise KeyError(
+            f"calendar_ids.json に '{category_name or legacy_key}' または default_calendar_id/default が設定されていません。"
+        )
+    return calendar_id
 
 
 def main():
@@ -74,7 +113,9 @@ class Webscraping:
                         else:
                             print("[Error] 日付のフォーマットが認識できませんでした。")
                     else:
-                        print("[Error] ゲームタイトルまたは日付が見つかりませんでした。")
+                        print(
+                            "[Error] ゲームタイトルまたは日付が見つかりませんでした。"
+                        )
                 else:
                     print("[Error] リンクが見つかりませんでした")
             else:
@@ -93,18 +134,24 @@ class Webscraping:
 
 class GoogleCalendar:
     def __init__(self):
+        self.calendar_id = load_calendar_id(
+            category_name="オタ活", legacy_key="dmmgames"
+        )
         self.creds = None  # 認証情報の初期化
         if os.path.exists(
             "tokens/calendar_token.json"
         ):  # credentials.json ファイルに保存された認証情報をロードする
-            self.creds = Credentials.from_authorized_user_file("tokens/calendar_token.json")
+            self.creds = Credentials.from_authorized_user_file(
+                "tokens/calendar_token.json"
+            )
 
         # 認証情報(calendar_token.json)がない場合や期限切れの場合は、ユーザーに認証を求める
         if (
             not self.creds or not self.creds.valid
         ):  # cerds.validはtrueかfalseを返し、切れている場合はtrue
             if (
-                self.creds and self.creds.expired and self.creds.refresh_token            ):  # tokenがあった場合、期限切れかどうかを確認
+                self.creds and self.creds.expired and self.creds.refresh_token
+            ):  # tokenがあった場合、期限切れかどうかを確認
                 self.creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(  # tokenがない場合、認証を行う
@@ -113,7 +160,8 @@ class GoogleCalendar:
                 )
                 self.creds = flow.run_local_server(port=0)
             # 認証情報を保存する
-            with open("tokens/calendar_token.json", "w") as token:                token.write(
+            with open("tokens/calendar_token.json", "w") as token:
+                token.write(
                     self.creds.to_json()
                 )  # 認証情報が入っているself.credsをjson形式に変換して保存する
         self.service = build("calendar", "v3", credentials=self.creds)
@@ -126,9 +174,7 @@ class GoogleCalendar:
             "start": {"date": formatted_date, "timeZone": "Asia/Tokyo"},
             "end": {"date": formatted_date, "timeZone": "Asia/Tokyo"},
         }
-        self.service.events().insert(
-            calendarId=os.getenv("OTAKATU_GOOGLECALENDAR_ID"), body=event
-        ).execute()
+        self.service.events().insert(calendarId=self.calendar_id, body=event).execute()
         print("[Info] Google Calendarにイベントを追加しました。")
 
 

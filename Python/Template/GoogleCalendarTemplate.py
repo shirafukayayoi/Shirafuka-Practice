@@ -1,5 +1,7 @@
 import datetime
+import json
 import os
+from pathlib import Path
 
 import pandas as pd
 from dotenv import load_dotenv
@@ -11,8 +13,45 @@ from googleapiclient.discovery import build
 load_dotenv()
 
 
+def load_calendar_id(category_name: str = "", legacy_key: str = "") -> str:
+    calendar_ids_path = (
+        Path(__file__).resolve().parent.parent.parent / "tokens" / "calendar_ids.json"
+    )
+    if not calendar_ids_path.exists():
+        raise FileNotFoundError(
+            f"カレンダーID設定ファイルが見つかりません: {calendar_ids_path}"
+        )
+
+    with calendar_ids_path.open("r", encoding="utf-8") as f:
+        calendar_ids = json.load(f)
+
+    if isinstance(calendar_ids, dict) and isinstance(
+        calendar_ids.get("calendar_map"), dict
+    ):
+        if category_name:
+            mapped_id = calendar_ids["calendar_map"].get(category_name)
+            if mapped_id:
+                return mapped_id
+        default_id = calendar_ids.get("default_calendar_id")
+        if default_id:
+            return default_id
+
+    calendar_id = ""
+    if legacy_key:
+        calendar_id = calendar_ids.get(legacy_key, "")
+    if not calendar_id and category_name:
+        calendar_id = calendar_ids.get(category_name, "")
+    if not calendar_id:
+        calendar_id = calendar_ids.get("default", "")
+    if not calendar_id:
+        raise KeyError(
+            f"calendar_ids.json に '{category_name or legacy_key}' または default_calendar_id/default が設定されていません。"
+        )
+    return calendar_id
+
+
 def main():
-    Calendar_id = os.environ["TEMPLATE_GOOGLE_CALENDAR_ID"]
+    Calendar_id = load_calendar_id(legacy_key="template")
 
     google_calendar = GoogleCalendar()  # initを実行するために必要
     google_calendar.Add_event_from_csv(Calendar_id)
