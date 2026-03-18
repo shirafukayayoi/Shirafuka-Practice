@@ -735,10 +735,12 @@ python slideshow_maker.py
 **ffmpegのインストール:**
 
 Windowsの場合：
+
 1. [ffmpeg公式サイト](https://ffmpeg.org/download.html)からダウンロード
 2. 解凍してPATHに追加
 
 または、chocolateyを使用：
+
 ```bash
 choco install ffmpeg
 ```
