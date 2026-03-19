@@ -15,6 +15,13 @@ use url::Url;
 
 const GOOGLE_TOKEN_ENDPOINT: &str = "https://oauth2.googleapis.com/token";
 const GOOGLE_DEVICE_CODE_ENDPOINT: &str = "https://oauth2.googleapis.com/device/code";
+const DEFAULT_AUTH_SCOPES: [&str; 5] = [
+    "https://www.googleapis.com/auth/calendar.events",
+    "https://www.googleapis.com/auth/youtube",
+    "https://www.googleapis.com/auth/gmail.readonly",
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive.file",
+];
 
 #[derive(Parser, Debug)]
 #[command(name = "google-tools-cli")]
@@ -42,7 +49,7 @@ enum Commands {
 
 #[derive(Args, Debug)]
 struct AuthArgs {
-    #[arg(long = "scope", required = true)]
+    #[arg(long = "scope")]
     scopes: Vec<String>,
 }
 
@@ -443,7 +450,11 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Commands::Auth(args) => {
-            let scopes: Vec<&str> = args.scopes.iter().map(|s| s.as_str()).collect();
+            let scopes: Vec<&str> = if args.scopes.is_empty() {
+                DEFAULT_AUTH_SCOPES.to_vec()
+            } else {
+                args.scopes.iter().map(|s| s.as_str()).collect()
+            };
             let token = auth.ensure_access_token(&scopes).await?;
             println!("[Auth] Access token is ready (length={})", token.len());
         }

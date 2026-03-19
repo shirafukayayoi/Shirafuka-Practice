@@ -20,6 +20,20 @@ cargo run -- --help
 ### 認証
 
 ```bash
+google-tools-cli auth
+```
+
+`--scope` 省略時は以下をまとめて要求します。
+
+- `https://www.googleapis.com/auth/calendar.events`
+- `https://www.googleapis.com/auth/youtube`
+- `https://www.googleapis.com/auth/gmail.readonly`
+- `https://www.googleapis.com/auth/spreadsheets`
+- `https://www.googleapis.com/auth/drive.file`
+
+個別に指定したい場合:
+
+```bash
 google-tools-cli auth --scope https://www.googleapis.com/auth/calendar.events
 ```
 
