@@ -1,7 +1,8 @@
 ﻿use std::collections::HashSet;
 use std::fs;
+use std::io::{Read, Write};
+use std::net::TcpListener;
 use std::path::{Path, PathBuf};
-use std::time::Duration;
 
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, Duration as ChronoDuration, Utc};
@@ -10,11 +11,10 @@ use reqwest::multipart::{Form, Part};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
-use tokio::time::sleep;
 use url::Url;
 
 const GOOGLE_TOKEN_ENDPOINT: &str = "https://oauth2.googleapis.com/token";
-const GOOGLE_DEVICE_CODE_ENDPOINT: &str = "https://oauth2.googleapis.com/device/code";
+const GOOGLE_AUTH_ENDPOINT: &str = "https://accounts.google.com/o/oauth2/v2/auth";
 const DEFAULT_AUTH_SCOPES: [&str; 5] = [
     "https://www.googleapis.com/auth/calendar.events",
     "https://www.googleapis.com/auth/youtube",
@@ -192,28 +192,11 @@ struct StoredToken {
 }
 
 #[derive(Deserialize)]
-struct DeviceCodeResponse {
-    device_code: String,
-    user_code: String,
-    verification_url: Option<String>,
-    verification_uri: Option<String>,
-    verification_uri_complete: Option<String>,
-    expires_in: i64,
-    interval: Option<u64>,
-}
-
-#[derive(Deserialize)]
 struct TokenResponse {
     access_token: String,
-    token_type: String,
     expires_in: i64,
     refresh_token: Option<String>,
     scope: Option<String>,
-}
-
-#[derive(Deserialize)]
-struct TokenErrorResponse {
-    error: String,
 }
 
 #[derive(Deserialize)]
@@ -272,9 +255,9 @@ impl AuthContext {
         }
 
         let issued = self
-            .run_device_flow(&required)
+            .run_desktop_oauth_flow(&required)
             .await
-            .context("failed to complete device OAuth flow")?;
+            .context("failed to complete desktop OAuth flow")?;
         self.save_token(&issued)?;
         Ok(issued.access_token)
     }
@@ -356,91 +339,105 @@ impl AuthContext {
         })
     }
 
-    async fn run_device_flow(&self, scopes: &[String]) -> Result<StoredToken> {
+    async fn run_desktop_oauth_flow(&self, scopes: &[String]) -> Result<StoredToken> {
         let (client_id, client_secret) = self.load_client_credentials()?;
+        let redirect_uri = "http://127.0.0.1:8765/callback";
 
-        let scope_joined = scopes.join(" ");
-        let device_code_response = self
+        let mut auth_url = Url::parse(GOOGLE_AUTH_ENDPOINT)?;
+        {
+            let mut qp = auth_url.query_pairs_mut();
+            qp.append_pair("client_id", &client_id);
+            qp.append_pair("redirect_uri", redirect_uri);
+            qp.append_pair("response_type", "code");
+            qp.append_pair("scope", &scopes.join(" "));
+            qp.append_pair("access_type", "offline");
+            qp.append_pair("prompt", "consent");
+            qp.append_pair("include_granted_scopes", "true");
+        }
+
+        println!("[Auth] Open this URL in your browser:");
+        println!("[Auth] {}", auth_url);
+        println!("[Auth] Waiting for callback on {}", redirect_uri);
+
+        let code = wait_for_auth_code("127.0.0.1:8765")
+            .context("failed to receive authorization code on localhost callback")?;
+
+        let mut form = vec![
+            ("client_id", client_id),
+            ("code", code),
+            ("redirect_uri", redirect_uri.to_string()),
+            ("grant_type", "authorization_code".to_string()),
+        ];
+
+        if let Some(secret) = client_secret {
+            form.push(("client_secret", secret));
+        }
+
+        let res = self
             .client
-            .post(GOOGLE_DEVICE_CODE_ENDPOINT)
-            .form(&[("client_id", client_id.clone()), ("scope", scope_joined.clone())])
+            .post(GOOGLE_TOKEN_ENDPOINT)
+            .form(&form)
             .send()
             .await?;
 
-        if !device_code_response.status().is_success() {
-            let body = device_code_response.text().await.unwrap_or_default();
-            return Err(anyhow!("device code request failed: {}", body));
+        if !res.status().is_success() {
+            let body = res.text().await.unwrap_or_default();
+            return Err(anyhow!("authorization code exchange failed: {}", body));
         }
 
-        let payload: DeviceCodeResponse = device_code_response.json().await?;
-        let verify_url = payload
-            .verification_uri_complete
-            .clone()
-            .or(payload.verification_url.clone())
-            .or(payload.verification_uri.clone())
-            .unwrap_or_else(|| "https://www.google.com/device".to_string());
+        let token: TokenResponse = res.json().await?;
+        let expires_at = Utc::now() + ChronoDuration::seconds(token.expires_in.max(0));
+        let token_scopes = token
+            .scope
+            .as_deref()
+            .map(|s| s.split(' ').map(|v| v.to_string()).collect())
+            .unwrap_or_else(|| scopes.to_vec());
 
-        println!("[Auth] Open this URL and complete authentication:");
-        println!("[Auth] {}", verify_url);
-        println!("[Auth] User code: {}", payload.user_code);
-
-        let interval = payload.interval.unwrap_or(5);
-        let deadline = Utc::now() + ChronoDuration::seconds(payload.expires_in.max(0));
-
-        loop {
-            if Utc::now() > deadline {
-                return Err(anyhow!("device authorization timed out"));
-            }
-
-            let mut form = vec![
-                ("client_id", client_id.clone()),
-                (
-                    "grant_type",
-                    "urn:ietf:params:oauth:grant-type:device_code".to_string(),
-                ),
-                ("device_code", payload.device_code.clone()),
-            ];
-
-            if let Some(secret) = client_secret.clone() {
-                form.push(("client_secret", secret));
-            }
-
-            let poll = self.client.post(GOOGLE_TOKEN_ENDPOINT).form(&form).send().await?;
-
-            if poll.status().is_success() {
-                let token: TokenResponse = poll.json().await?;
-                let expires_at = Utc::now() + ChronoDuration::seconds(token.expires_in.max(0));
-                let token_scopes = token
-                    .scope
-                    .as_deref()
-                    .map(|s| s.split(' ').map(|v| v.to_string()).collect())
-                    .unwrap_or_else(|| scopes.to_vec());
-
-                return Ok(StoredToken {
-                    access_token: token.access_token,
-                    refresh_token: token.refresh_token,
-                    expires_at: Some(expires_at),
-                    scopes: token_scopes,
-                });
-            }
-
-            let error_payload = poll.json::<TokenErrorResponse>().await.unwrap_or(TokenErrorResponse {
-                error: "unknown_error".to_string(),
-            });
-
-            match error_payload.error.as_str() {
-                "authorization_pending" => {
-                    sleep(Duration::from_secs(interval)).await;
-                }
-                "slow_down" => {
-                    sleep(Duration::from_secs(interval + 5)).await;
-                }
-                other => {
-                    return Err(anyhow!("device flow failed: {}", other));
-                }
-            }
-        }
+        Ok(StoredToken {
+            access_token: token.access_token,
+            refresh_token: token.refresh_token,
+            expires_at: Some(expires_at),
+            scopes: token_scopes,
+        })
     }
+}
+
+fn wait_for_auth_code(bind_addr: &str) -> Result<String> {
+    let listener =
+        TcpListener::bind(bind_addr).with_context(|| format!("failed to bind {}", bind_addr))?;
+    let (mut stream, _) = listener
+        .accept()
+        .context("failed to accept OAuth callback connection")?;
+
+    let mut buffer = [0u8; 8192];
+    let read_len = stream
+        .read(&mut buffer)
+        .context("failed to read OAuth callback request")?;
+    let request = String::from_utf8_lossy(&buffer[..read_len]);
+    let first_line = request.lines().next().unwrap_or_default();
+    let raw_path = first_line.split_whitespace().nth(1).unwrap_or("/");
+    let parsed = Url::parse(&format!("http://localhost{}", raw_path))
+        .context("invalid callback URL received")?;
+
+    if let Some(error) = parsed
+        .query_pairs()
+        .find_map(|(k, v)| if k == "error" { Some(v.to_string()) } else { None })
+    {
+        let _ = stream.write_all(
+            b"HTTP/1.1 400 Bad Request\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nAuthentication failed. You can close this window.",
+        );
+        return Err(anyhow!("authorization failed: {}", error));
+    }
+
+    let code = parsed
+        .query_pairs()
+        .find_map(|(k, v)| if k == "code" { Some(v.to_string()) } else { None })
+        .ok_or_else(|| anyhow!("authorization code not found in callback"))?;
+
+    let _ = stream.write_all(
+        b"HTTP/1.1 200 OK\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nAuthentication complete. You can close this window.",
+    );
+    Ok(code)
 }
 
 #[tokio::main]
@@ -948,3 +945,4 @@ fn normalize_path(path: &Path) -> PathBuf {
         std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")).join(path)
     }
 }
+

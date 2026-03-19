@@ -23,6 +23,8 @@ cargo run -- --help
 google-tools-cli auth
 ```
 
+実行後に表示されるURLをブラウザで開き、`http://127.0.0.1:8765/callback` へのリダイレクトで認証完了します。
+
 `--scope` 省略時は以下をまとめて要求します。
 
 - `https://www.googleapis.com/auth/calendar.events`
