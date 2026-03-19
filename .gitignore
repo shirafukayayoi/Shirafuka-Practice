@@ -23,6 +23,7 @@ calendar_token.json
 gmail_token.json
 drive_token.json
 sheet_token.json
+rust_google_token.json
 token.pickle
 Youtube_PlayList_token.pickle
 *.pickle
