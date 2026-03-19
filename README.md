@@ -752,3 +752,44 @@ choco install ffmpeg
 - 🎼 **音響分析**: RMSエネルギー、スペクトル重心、ゼロ交差率を組み合わせた激しさスコア算出
 
 詳しい使い方は [README_slideshow.md](README_slideshow.md) を参照してください。
+
+## Rust
+
+### google_tools_cli
+
+`Add 2026/03/19`
+
+Python の Google 系ツールを Rust CLI に移行したツールです。  
+場所: `Rust/google_tools_cli`
+
+**主な機能:**
+
+- Google OAuth (Desktop / localhost callback)
+- Google Calendar 予定追加
+- YouTube プレイリストのCSV出力/取込
+- Gmail検索結果のCSV出力
+- Google SheetsへのCSV追記
+- Google Driveへのファイルアップロード
+
+**ビルド:**
+
+```powershell
+powershell -ExecutionPolicy Bypass -File Rust/google_tools_cli/build_release.ps1
+```
+
+**実行例（リポジトリ直下で実行）:**
+
+```powershell
+.\Rust\google_tools_cli\google_tools_cli.exe auth
+```
+
+**実行例（Rust/google_tools_cli 配下で実行）:**
+
+```powershell
+.\google_tools_cli.exe --credentials ..\..\tokens\credentials.json --token ..\..\tokens\rust_google_token.json auth
+```
+
+**注意:**
+
+- ルートオプション（`--credentials`, `--token`）は `auth` の前に書く
+- 認証時は表示されたURLをブラウザで開き、`http://127.0.0.1:8765/callback` で完了
