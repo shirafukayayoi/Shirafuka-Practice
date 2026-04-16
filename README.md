@@ -236,6 +236,31 @@ python Python/CalendarTextCli.py --suggest "来週金曜 レポート提出"
 - `tokens/credentials.json`（Google OAuthクライアント情報）を配置
 - `tokens/calendar_ids.json` に `calendar_map` と `default_calendar_id` を設定
 
+### ClassroomTaskCollector.py
+
+`Add 2026/04/16`  
+Google Classroom API を使って、受講中のコース一覧と各コースの課題一覧を表示するPython。  
+期限情報が無い課題は、`N/A` ではなく課題名のみ表示します。
+
+**実行例:**
+
+```bash
+python Python/ClassroomTaskCollector.py
+python Python/ClassroomTaskCollector.py --credentials credentials_2.json
+```
+
+**必要な準備:**
+
+- Google Cloud で Classroom API を有効化
+- `tokens/credentials.json` または `tokens/credentials_*.json` を配置
+- 初回実行時のブラウザ認証を完了する
+
+**出力のポイント:**
+
+- コースごとに課題一覧を表示
+- 課題が無いコースは `No assignments found.` を表示
+- 最後に `Total assignments: <件数>` を表示
+
 ### fb2k_generate_playlist.py
 
 `Add 2025/04/25`  

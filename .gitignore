@@ -46,3 +46,5 @@ GoogleAPI-v1/
 downloaded_github_repos/
 tools/
 Python/lyrics_output.ja.vtt
+tokens/credentials_2.json
+tokens/classroom_token_2.json
