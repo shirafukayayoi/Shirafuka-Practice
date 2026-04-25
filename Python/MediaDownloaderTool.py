@@ -1,4 +1,5 @@
 import glob
+import ctypes
 import json
 import os
 import os.path
@@ -41,6 +42,14 @@ def resolve_executable(env_name, executable_name, default_path=None):
             return candidate
 
     return env_path or shutil.which(executable_name) or default_path or executable_name
+
+
+def cuda_available():
+    try:
+        ctypes.WinDLL("nvcuda.dll")
+        return True
+    except OSError:
+        return False
 
 
 class MediaDownloader:
@@ -139,6 +148,7 @@ class VideoVerticalConverter:
             "ffprobe",
             "C:\\Users\\ron06\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffprobe.exe",
         )
+        self.cuda_available = cuda_available()
 
     def _get_video_info(self):
         """動画のメタデータを取得"""
@@ -380,26 +390,36 @@ class VideoVerticalConverter:
             size=(W, H),
         ).with_duration(original_clip.duration)
 
-        # エンコード（NVENCを試してからCPUへフォールバック）
-        try:
-            final_clip.write_videofile(
-                self.output_path,
-                codec="h264_nvenc",
-                audio_codec="aac",
-                fps=original_clip.fps,
-                preset="medium",
-                ffmpeg_params=[
-                    "-rc:v",
-                    "vbr",
-                    "-cq:v",
-                    "19",
-                    "-b:v",
-                    "5M",
-                    "-maxrate:v",
-                    "10M",
-                ],
-            )
-        except Exception:
+        # エンコード（CUDA/NVENCが使える場合のみNVENCを試す）
+        if self.cuda_available:
+            try:
+                final_clip.write_videofile(
+                    self.output_path,
+                    codec="h264_nvenc",
+                    audio_codec="aac",
+                    fps=original_clip.fps,
+                    preset="medium",
+                    ffmpeg_params=[
+                        "-rc:v",
+                        "vbr",
+                        "-cq:v",
+                        "19",
+                        "-b:v",
+                        "5M",
+                        "-maxrate:v",
+                        "10M",
+                    ],
+                )
+            except Exception as e:
+                print(f"[Warning] NVENCエンコードに失敗しました: {e}")
+                final_clip.write_videofile(
+                    self.output_path,
+                    codec="libx264",
+                    audio_codec="aac",
+                    fps=original_clip.fps,
+                    threads=16,
+                )
+        else:
             final_clip.write_videofile(
                 self.output_path,
                 codec="libx264",
@@ -418,6 +438,11 @@ class VideoVerticalConverter:
         """縦型動画を生成する"""
         if not os.path.exists(self.input_path):
             print(f"[Error] 入力ファイルが見つかりません -> {self.input_path}")
+            return
+
+        if not self.cuda_available:
+            print("[Info] CUDA/NVENCが利用できないため、CPU処理を使用します。")
+            self._generate_cpu_fallback()
             return
 
         # GPU処理を試みる
