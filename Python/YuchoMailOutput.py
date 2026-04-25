@@ -631,6 +631,7 @@ def create_summary_charts(
 def main() -> None:
     os.chdir(SCRIPT_DIR)
     load_dotenv(ROOT_DIR / ".env")
+    load_dotenv(SCRIPT_DIR / ".env")
     args = parse_args()
 
     service = gmail_login()

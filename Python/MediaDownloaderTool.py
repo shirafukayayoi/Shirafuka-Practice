@@ -3,6 +3,7 @@ import json
 import os
 import os.path
 import re
+import shutil
 import subprocess
 import time
 
@@ -29,6 +30,17 @@ from googleapiclient.http import MediaFileUpload
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Shirafuka-Practiceディレクトリ
 TOKENS_DIR = os.path.join(PROJECT_ROOT, "tokens")
+
+
+def resolve_executable(env_name, executable_name, default_path=None):
+    env_path = os.getenv(env_name)
+    candidates = [env_path, shutil.which(executable_name), default_path]
+
+    for candidate in candidates:
+        if candidate and os.path.exists(candidate):
+            return candidate
+
+    return env_path or shutil.which(executable_name) or default_path or executable_name
 
 
 class MediaDownloader:
@@ -117,12 +129,14 @@ class VideoVerticalConverter:
         self.input_path = input_path
         self.output_path = output_path
         self.width, self.height = resolution
-        self.ffmpeg_path = os.getenv(
+        self.ffmpeg_path = resolve_executable(
             "FFMPEG_PATH",
+            "ffmpeg",
             "C:\\Users\\ron06\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffmpeg.exe",
         )
-        self.ffprobe_path = os.getenv(
+        self.ffprobe_path = resolve_executable(
             "FFPROBE_PATH",
+            "ffprobe",
             "C:\\Users\\ron06\\AppData\\Local\\Microsoft\\WinGet\\Links\\ffprobe.exe",
         )
 
