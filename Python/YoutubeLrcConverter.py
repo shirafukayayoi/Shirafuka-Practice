@@ -1,4 +1,5 @@
 import html
+import glob
 import os
 import re
 import subprocess
@@ -11,6 +12,7 @@ def download_vtt(video_url, ytdlp_path, output_name="subtitle"):
         "--write-subs",           # 字幕を書き込む
         "--skip-download",        # 動画本体はダウンロードしない
         "--sub-lang", "ja",       # 言語指定（日本語固定）
+        "--sub-format", "vtt",    # 取得形式を明示
         "--output", output_name,
         video_url
     ]
@@ -18,10 +20,11 @@ def download_vtt(video_url, ytdlp_path, output_name="subtitle"):
     print(f"字幕を取得中...: {video_url}")
     subprocess.run(command, check=True)
     
-    # 実際に保存されたファイル名を探す (yt-dlpは拡張子の前に言語コードを付けるため)
-    expected_file = f"{output_name}.en.vtt"
-    if os.path.exists(expected_file):
-        return expected_file
+    # yt-dlpは output_name.ja.vtt / output_name.ja-orig.vtt のような名前で保存することがある
+    candidates = sorted(glob.glob(f"{output_name}*.vtt"))
+    for candidate in candidates:
+        if os.path.exists(candidate):
+            return candidate
     return None
 
 def _to_lrc_timestamp(raw_time: str) -> str | None:
