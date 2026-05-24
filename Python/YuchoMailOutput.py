@@ -33,6 +33,7 @@ MONTHLY_STORE_PIVOT_SHEET_NAME = "月別店舗ピボット"
 
 TRANSACTION_HEADERS = ["日時", "金額", "店舗", "決済元"]
 CURRENCY_FORMAT = {"numberFormat": {"type": "CURRENCY", "pattern": "¥#,##0"}}
+MAIN_STEP_TOTAL = 8
 
 
 @dataclass(frozen=True)
@@ -44,6 +45,14 @@ class Transaction:
 
     def as_row(self) -> list[object]:
         return [self.occurred_at, self.amount, self.store, self.source]
+
+
+def log_step(step: int, message: str) -> None:
+    print(f"[Step {step}/{MAIN_STEP_TOTAL}] {message}")
+
+
+def log_info(message: str) -> None:
+    print(f"[Info] {message}")
 
 
 def parse_args() -> argparse.Namespace:
@@ -135,7 +144,9 @@ def _search_messages(service, query: str) -> list[dict]:
         if not page_token:
             break
 
-    return list(reversed(messages))
+    results = list(reversed(messages))
+    log_info(f"検索完了: {len(results)} 件のメールが見つかりました。")
+    return results
 
 
 def _normalize_store(store: str) -> str:
@@ -188,8 +199,11 @@ def _extract_labeled_value(text: str, labels: Iterable[str]) -> str | None:
 def _collect_transactions(service, query: str, parser, label: str) -> list[Transaction]:
     transactions: list[Transaction] = []
     errors: list[str] = []
+    log_info(f"{label}メールを検索中...")
+    messages = _search_messages(service, query)
+    log_info(f"{label}メールの本文を取得・解析中...")
 
-    for message in _search_messages(service, query):
+    for message in messages:
         payload = service.users().messages().get(userId="me", id=message["id"]).execute()
         text = _extract_plain_text_from_payload(payload.get("payload", {}))
 
@@ -203,7 +217,7 @@ def _collect_transactions(service, query: str, parser, label: str) -> list[Trans
         for index, sample in enumerate(errors[:3], start=1):
             print(f"[Warn] sample{index}: {sample}")
 
-    print(f"[Info] {label}の取得件数: {len(transactions)}")
+    log_info(f"{label}の取得件数: {len(transactions)}")
     return transactions
 
 
@@ -353,7 +367,7 @@ def load_paypay_transactions(csv_path: str) -> list[Transaction]:
     }
 
     result = sorted(unique_transactions.values(), key=lambda item: item.occurred_at)
-    print(f"[Info] PayPayシート反映件数: {len(result)}")
+    log_info(f"PayPayシート反映件数: {len(result)}")
     return result
 
 
@@ -630,13 +644,17 @@ def create_summary_charts(
 
 def main() -> None:
     os.chdir(SCRIPT_DIR)
+    log_step(1, "環境変数を読み込み中...")
     load_dotenv(ROOT_DIR / ".env")
     load_dotenv(SCRIPT_DIR / ".env")
     args = parse_args()
 
+    log_step(2, "Gmail に認証中...")
     service = gmail_login()
+    log_step(3, "スプレッドシートに認証中...")
     spreadsheet, sheet_creds = spreadsheet_login()
 
+    log_step(4, "ワークシートを確認・作成中...")
     visa_sheet = get_or_create_worksheet(spreadsheet, VISA_SHEET_NAME, rows=2000, cols=8)
     paypay_sheet = get_or_create_worksheet(spreadsheet, PAYPAY_SHEET_NAME, rows=2000, cols=8)
     summary_sheet = get_or_create_worksheet(spreadsheet, SUMMARY_SHEET_NAME, rows=200, cols=8)
@@ -649,23 +667,31 @@ def main() -> None:
         spreadsheet, MONTHLY_STORE_PIVOT_SHEET_NAME, rows=5000, cols=60
     )
 
+    log_step(5, "Visa 取引を取得してシートへ反映中...")
     visa_transactions = get_visa_transactions(service)
     write_transactions(visa_sheet, visa_transactions)
 
+    log_step(6, "PayPay 取引の反映可否を確認中...")
     if args.paypay_csv:
+        log_info(f"PayPay CSV を読み込みます: {args.paypay_csv}")
         paypay_transactions = load_paypay_transactions(args.paypay_csv)
         write_transactions(paypay_sheet, paypay_transactions)
     elif not paypay_sheet.get_all_values():
+        log_info("PayPay シートが空のため、ヘッダーのみ初期化します。")
         write_empty_headers(paypay_sheet)
+    else:
+        log_info("PayPay CSV 未指定のため、既存の PayPay シートをそのまま利用します。")
 
+    log_step(7, "集計シートを更新中...")
     write_total_sheet(summary_sheet)
     write_monthly_sheet(monthly_sheet)
     write_store_sheet(store_sheet)
     write_monthly_store_sheet(monthly_store_sheet)
     write_monthly_store_pivot_sheet(monthly_store_pivot_sheet)
+    log_step(8, "グラフを作成して完了処理中...")
     create_summary_charts(spreadsheet, sheet_creds, monthly_sheet, store_sheet)
 
-    print("[Info] スプレッドシートの更新が完了しました。")
+    log_info("スプレッドシートの更新が完了しました。")
 
 
 if __name__ == "__main__":
