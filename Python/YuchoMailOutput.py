@@ -30,6 +30,11 @@ MONTHLY_SHEET_NAME = "月別"
 STORE_SHEET_NAME = "店舗別"
 MONTHLY_STORE_SHEET_NAME = "月別店舗"
 MONTHLY_STORE_PIVOT_SHEET_NAME = "月別店舗ピボット"
+SUMITOMO_GMAIL_QUERY = (
+    '(subject:"ご利用のお知らせ【三井住友カード】" '
+    'OR subject:"【三井住友カード】ご利用のお知らせ" '
+    "OR from:statement@vpass.ne.jp)"
+)
 
 TRANSACTION_HEADERS = ["日時", "金額", "店舗", "決済元"]
 CURRENCY_FORMAT = {"numberFormat": {"type": "CURRENCY", "pattern": "¥#,##0"}}
@@ -154,10 +159,34 @@ def _normalize_store(store: str) -> str:
 
 
 def _parse_amount(text: str) -> int:
-    normalized = text.replace(",", "").replace("円", "").strip()
-    if not normalized or normalized == "-":
+    match = re.search(r"([0-9][0-9,]*)\s*円?", text)
+    if not match:
         raise ValueError("金額が空です。")
-    return int(normalized)
+    return int(match.group(1).replace(",", ""))
+
+
+def _parse_datetime(text: str | None) -> str | None:
+    if not text:
+        return None
+
+    normalized = (
+        text.replace("年", "/")
+        .replace("月", "/")
+        .replace("日", " ")
+        .replace(".", "/")
+        .replace("-", "/")
+    )
+    match = re.search(
+        r"(\d{4}/\d{1,2}/\d{1,2})\s+(\d{1,2}:\d{2})(?::(\d{2}))?",
+        normalized,
+    )
+    if not match:
+        return None
+
+    date_part, time_part, seconds = match.groups()
+    year, month, day = [int(part) for part in date_part.split("/")]
+    hour, minute = [int(part) for part in time_part.split(":")]
+    return f"{year:04d}/{month:02d}/{day:02d} {hour:02d}:{minute:02d}:{seconds or '00'}"
 
 
 def _first_match(patterns: Iterable[str], text: str) -> re.Match[str] | None:
@@ -194,6 +223,27 @@ def _extract_labeled_value(text: str, labels: Iterable[str]) -> str | None:
                 return normalized_line[index + len(label) :].strip()
 
     return None
+
+
+def _non_empty_lines(text: str) -> list[str]:
+    return [line.strip() for line in text.splitlines() if line.strip()]
+
+
+def _extract_sumitomo_usage_lines(text: str) -> tuple[str | None, str | None]:
+    lines = _non_empty_lines(text)
+    for index, line in enumerate(lines):
+        if "ご利用日時" not in line and "利用日時" not in line:
+            continue
+
+        store_text = lines[index + 1] if index + 1 < len(lines) else None
+        amount_text = None
+        for candidate in lines[index + 2 : index + 5]:
+            if re.search(r"[0-9][0-9,]*\s*円", candidate):
+                amount_text = candidate
+                break
+        return amount_text, store_text
+
+    return None, None
 
 
 def _collect_transactions(service, query: str, parser, label: str) -> list[Transaction]:
@@ -258,21 +308,23 @@ def _parse_yucho_transaction(text: str) -> Transaction:
 
 
 def _parse_sumitomo_transaction(text: str) -> Transaction:
-    date_text = _extract_labeled_value(text, ["ご利用日", "利用日"])
-    amount_text = _extract_labeled_value(text, ["ご利用金額", "利用金額"])
-    store_text = _extract_labeled_value(text, ["ご利用先", "利用先"])
-
-    date_match = (
-        re.search(r"(\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2})", date_text)
-        if date_text
-        else None
+    date_text = _extract_labeled_value(
+        text, ["ご利用日時", "利用日時", "ご利用日", "利用日"]
     )
+    amount_text = _extract_labeled_value(text, ["ご利用金額", "利用金額"])
+    store_text = _extract_labeled_value(
+        text, ["ご利用先名", "利用先名", "ご利用先", "利用先", "ご利用店名", "利用店名", "店舗名"]
+    )
+    usage_amount_text, usage_store_text = _extract_sumitomo_usage_lines(text)
+    amount_text = amount_text or usage_amount_text
+    store_text = store_text or usage_store_text
+    occurred_at = _parse_datetime(date_text) or _parse_datetime(text)
 
-    if not date_match or not amount_text or not store_text:
+    if not occurred_at or not amount_text or not store_text:
         raise ValueError("三井住友メールの必要情報を抽出できませんでした。")
 
     return Transaction(
-        occurred_at=date_match.group(1),
+        occurred_at=occurred_at,
         amount=_parse_amount(amount_text),
         store=_normalize_store(store_text),
         source="三井住友",
@@ -288,7 +340,7 @@ def get_visa_transactions(service) -> list[Transaction]:
     )
     sumitomo_transactions = _collect_transactions(
         service,
-        'subject:"ご利用のお知らせ【三井住友カード】"',
+        SUMITOMO_GMAIL_QUERY,
         _parse_sumitomo_transaction,
         "三井住友",
     )
