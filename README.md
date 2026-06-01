@@ -29,28 +29,6 @@ python -m venv .venv
 pip install -r requirements.txt
 Copy-Item .env.example .env
 ```
-
-### 主な環境変数
-
-- `GITHUB_TOKEN`
-- `YOUTUBE_API_KEY`
-- `YT-DLP_PATH`
-- `FFMPEG_PATH`
-- `FFPROBE_PATH`
-- `VIDEO_OUTPUT_FOLDER_ID`
-- `DMM_EMAIL`
-- `DMM_PASSWORD`
-- `DMM_GOOGLE_SHEET_URL`
-- `BOOKWALKER_EMAIL`
-- `BOOKWALKER_PASSWORD`
-- `BOOKWALKER_FOLDER_ID`
-- `YOUTUBE_PLAYLIST_FOLDER_ID`
-- `DISCORD_WEBHOOK_URL`
-- `INSTAGRAM_ID`
-- `INSTAGRAM_PASSWORD`
-- `YUCHO_SHEET`
-- `GMAIL_TEMPLETE_EMAIL`
-
 ### 運用ルール
 
 - `.env`、認証ファイル、Cookie、`*.pickle` はコミットしない
