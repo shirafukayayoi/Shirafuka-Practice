@@ -8,18 +8,9 @@ import shutil
 import subprocess
 import time
 
-import cv2
 from dotenv import load_dotenv
 
 load_dotenv()
-
-# moviepyはフォールバック用に遅延インポート
-try:
-    from moviepy import CompositeVideoClip, VideoFileClip, vfx
-
-    MOVIEPY_AVAILABLE = True
-except ImportError:
-    MOVIEPY_AVAILABLE = False
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -269,27 +260,56 @@ class VideoVerticalConverter:
 
         return cmd
 
-    def _generate_gpu(self):
-        """GPU処理で縦型動画を生成"""
-        print("[Info] GPU処理を開始します...")
-        start_time = time.time()
+    def _build_ffmpeg_command_cpu(self):
+        """CPU処理用のffmpegコマンドを構築"""
+        W, H = self.width, self.height
 
-        # 動画情報取得
-        video_info = self._get_video_info()
-        if not video_info:
-            raise RuntimeError("動画情報の取得に失敗しました")
-
-        print(
-            f"[Info] 入力動画: {video_info['width']}x{video_info['height']} @ {video_info['fps']:.2f}fps, {video_info['duration']:.1f}秒"
+        filter_complex = (
+            f"[0:v]split=2[bg][fg];"
+            f"[bg]scale="
+            f"w='if(gte(iw/ih,{W}/{H}),-2,{W})':"
+            f"h='if(gte(iw/ih,{W}/{H}),{H},-2)',"
+            f"crop={W}:{H}:(iw-{W})/2:(ih-{H})/2,"
+            f"eq=brightness=0.2,"
+            f"gblur=sigma=17[bg_blur];"
+            f"[fg]scale={W}:-2[fg_scaled];"
+            f"[bg_blur][fg_scaled]overlay=x=({W}-w)/2:y=({H}-h)/2[v]"
         )
 
-        # コマンド構築
-        cmd = self._build_ffmpeg_command_gpu(video_info)
+        cmd = [
+            self.ffmpeg_path,
+            "-y",
+            "-i",
+            self.input_path,
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            "[v]",
+            "-map",
+            "0:a?",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "20",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-movflags",
+            "+faststart",
+            self.output_path,
+        ]
 
-        # デバッグ: コマンドをログ出力
+        return cmd
+
+    def _run_ffmpeg_command(self, cmd, duration):
+        """ffmpegコマンドを実行し、進捗を表示する"""
         print(f"[Debug] ffmpegコマンド: {' '.join(cmd)}")
 
-        # 実行
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
@@ -300,7 +320,6 @@ class VideoVerticalConverter:
         )
 
         # 進捗表示とエラーメッセージの収集
-        duration = video_info["duration"]
         output_lines = []
 
         for line in process.stdout:
@@ -326,110 +345,42 @@ class VideoVerticalConverter:
                 f"ffmpegの実行に失敗しました (終了コード: {process.returncode})"
             )
 
+    def _generate_gpu(self):
+        """GPU処理で縦型動画を生成"""
+        print("[Info] GPU処理を開始します...")
+        start_time = time.time()
+
+        # 動画情報取得
+        video_info = self._get_video_info()
+        if not video_info:
+            raise RuntimeError("動画情報の取得に失敗しました")
+
+        print(
+            f"[Info] 入力動画: {video_info['width']}x{video_info['height']} @ {video_info['fps']:.2f}fps, {video_info['duration']:.1f}秒"
+        )
+
+        # コマンド構築・実行
+        cmd = self._build_ffmpeg_command_gpu(video_info)
+        self._run_ffmpeg_command(cmd, video_info["duration"])
+
         elapsed = time.time() - start_time
         print(f"[Info] GPU処理完了: {elapsed:.1f}秒")
 
     def _generate_cpu_fallback(self):
-        """CPUフォールバック処理（moviepy使用）"""
-        if not MOVIEPY_AVAILABLE:
-            raise RuntimeError(
-                "moviepyが利用できません。GPU処理にも失敗したため、処理を続行できません。"
-            )
-
+        """CPUフォールバック処理（ffmpeg使用）"""
         print("[Info] CPUフォールバック処理を開始します...")
         start_time = time.time()
 
-        original_clip = VideoFileClip(self.input_path)
+        video_info = self._get_video_info()
+        if not video_info:
+            raise RuntimeError("動画情報の取得に失敗しました")
 
-        W, H = self.width, self.height
-        orig_W, orig_H = original_clip.size
-
-        # 背景クリップの作成（すべて偶数に丸める）
-        scale_factor_bg = H / orig_H
-        resized_bg_width = int(orig_W * scale_factor_bg) & ~1  # 偶数に丸める
-        temp_width = int(resized_bg_width / 3) & ~1  # 偶数に丸める
-        temp_height = int(H / 3) & ~1  # 偶数に丸める
-
-        x_center = resized_bg_width / 2
-        y_center = H / 2
-        x1 = int(x_center - W / 2) & ~1  # 偶数に丸める
-        y1 = int(y_center - H / 2) & ~1  # 偶数に丸める
-        x2 = int(x_center + W / 2) & ~1  # 偶数に丸める
-        y2 = int(y_center + H / 2) & ~1  # 偶数に丸める
-
-        def process_frame(frame):
-            frame = (frame * 1.2).clip(0, 255).astype("uint8")
-            return cv2.GaussianBlur(frame, (51, 51), 0)
-
-        background_clip = (
-            original_clip.copy()
-            .resized((temp_width, temp_height))
-            .resized((resized_bg_width, H))
-            .cropped(x1=x1, y1=y1, x2=x2, y2=y2)
-            .image_transform(process_frame)
+        print(
+            f"[Info] 入力動画: {video_info['width']}x{video_info['height']} @ {video_info['fps']:.2f}fps, {video_info['duration']:.1f}秒"
         )
 
-        # 前景クリップの作成（すべて偶数に丸める）
-        foreground_width = W & ~1  # 偶数に丸める
-        scale_factor_fg = foreground_width / orig_W
-        foreground_height = int(orig_H * scale_factor_fg) & ~1  # 偶数に丸める
-
-        foreground_clip = original_clip.copy().resized(
-            (foreground_width, foreground_height)
-        )
-
-        # 合成位置も偶数に丸める
-        x_pos = int((W - foreground_width) / 2) & ~1
-        y_pos = int((H - foreground_height) / 2) & ~1
-
-        final_clip = CompositeVideoClip(
-            [
-                background_clip.with_position("center"),
-                foreground_clip.with_position((x_pos, y_pos)),
-            ],
-            size=(W, H),
-        ).with_duration(original_clip.duration)
-
-        # エンコード（CUDA/NVENCが使える場合のみNVENCを試す）
-        if self.cuda_available:
-            try:
-                final_clip.write_videofile(
-                    self.output_path,
-                    codec="h264_nvenc",
-                    audio_codec="aac",
-                    fps=original_clip.fps,
-                    preset="medium",
-                    ffmpeg_params=[
-                        "-rc:v",
-                        "vbr",
-                        "-cq:v",
-                        "19",
-                        "-b:v",
-                        "5M",
-                        "-maxrate:v",
-                        "10M",
-                    ],
-                )
-            except Exception as e:
-                print(f"[Warning] NVENCエンコードに失敗しました: {e}")
-                final_clip.write_videofile(
-                    self.output_path,
-                    codec="libx264",
-                    audio_codec="aac",
-                    fps=original_clip.fps,
-                    threads=16,
-                )
-        else:
-            final_clip.write_videofile(
-                self.output_path,
-                codec="libx264",
-                audio_codec="aac",
-                fps=original_clip.fps,
-                threads=16,
-            )
-
-        original_clip.close()
-        final_clip.close()
+        cmd = self._build_ffmpeg_command_cpu()
+        self._run_ffmpeg_command(cmd, video_info["duration"])
 
         elapsed = time.time() - start_time
         print(f"[Info] CPUフォールバック処理完了: {elapsed:.1f}秒")
