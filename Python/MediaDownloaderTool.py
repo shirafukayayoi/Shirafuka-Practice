@@ -1,3 +1,4 @@
+import argparse
 import glob
 import ctypes
 import json
@@ -569,7 +570,21 @@ class GoogleDriveManager:
             return None
 
 
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="動画URLまたはローカル動画ファイルを縦型動画に変換します。"
+    )
+    parser.add_argument(
+        "input",
+        nargs="?",
+        help="動画URLまたはローカルファイルのパス。未指定の場合は対話入力します。",
+    )
+    return parser.parse_args()
+
+
 if __name__ == "__main__":
+    args = parse_args()
+
     # --- Google Drive接続確認 ---
     print("=" * 60)
     print("Google Drive接続確認")
@@ -598,9 +613,15 @@ if __name__ == "__main__":
     print("動画処理開始")
     print("=" * 60)
 
-    user_input = input(
-        "動画URLまたはローカルファイルのパスを入力してください: "
-    ).strip()
+    user_input = (
+        args.input.strip()
+        if args.input
+        else input("動画URLまたはローカルファイルのパスを入力してください: ").strip()
+    )
+
+    if not user_input:
+        print("[Error] 動画URLまたはローカルファイルのパスが指定されていません。")
+        raise SystemExit(1)
 
     # ファイルパスかURLかを判定
     is_local_file = os.path.exists(user_input)

@@ -536,6 +536,21 @@ yt-dlpで字幕だけをダウンロードし、タイムスタンプをLRC形�
 yt-dlpでダウンロードした動画を縦型の動画にし、GoogleドライブにアップロードするPython。  
 動画URLまたはローカルファイルのパスを指定可能。
 
+**使い方:**
+
+```powershell
+# URLを引数で指定
+python Python\MediaDownloaderTool.py "https://www.youtube.com/watch?v=..."
+
+# ローカルファイルを引数で指定
+python Python\MediaDownloaderTool.py "C:\path\to\movie.mp4"
+
+# 引数なしの場合は対話入力
+python Python\MediaDownloaderTool.py
+```
+
+yt-dlpは`Tools\yt-dlp.exe`を優先して使用します。`YT-DLP_PATH`環境変数を設定している場合は、そのパスが優先されます。
+
 **主な機能:**
 
 - yt-dlpを使用した動画URLからの自動ダウンロード
@@ -555,6 +570,7 @@ yt-dlpでダウンロードした動画を縦型の動画にし、Googleドラ�
 
 **Change Log:**
 
+- `2026/06/19`: URLまたはローカルファイルをコマンドライン引数で指定できるように変更。`Tools\yt-dlp.exe`を優先して使用するように修正。
 - `2026/02/14`: 動画変換時に前景と背景の間に緑色の線が表示される問題を修正。YUV420pフォーマットのアライメント要件に対応するため、すべてのサイズ計算と位置計算を偶数に丸める処理を追加。
 - `2026/02/07`: GPU処理による大幅高速化を実装。NVIDIA CUDAを活用したffmpeg直接処理により5-10倍の性能向上。GPU非対応環境でも動作するCPUフォールバック機能を搭載。
 - `2026/01/26`: Google Driveアップロード後に不要なファイル（変換後の動画とダウンロードした元動画）を自動削除する機能を追加。ローカルファイルは削除せず保護。
