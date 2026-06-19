@@ -31,7 +31,7 @@ STORE_SHEET_NAME = "店舗別"
 MONTHLY_STORE_SHEET_NAME = "月別店舗"
 MONTHLY_STORE_PIVOT_SHEET_NAME = "月別店舗ピボット"
 
-TRANSACTION_HEADERS = ["日時", "金額", "店舗", "決済元"]
+TRANSACTION_HEADERS = ["日時", "金額", "店舗", "決済元", "決済種別"]
 CURRENCY_FORMAT = {"numberFormat": {"type": "CURRENCY", "pattern": "¥#,##0"}}
 MAIN_STEP_TOTAL = 8
 
@@ -42,9 +42,16 @@ class Transaction:
     amount: int
     store: str
     source: str
+    payment_type: str
 
     def as_row(self) -> list[object]:
-        return [self.occurred_at, self.amount, self.store, self.source]
+        return [
+            self.occurred_at,
+            self.amount,
+            self.store,
+            self.source,
+            self.payment_type,
+        ]
 
 
 def log_step(step: int, message: str) -> None:
@@ -150,14 +157,25 @@ def _search_messages(service, query: str) -> list[dict]:
 
 
 def _normalize_store(store: str) -> str:
-    return re.sub(r"\s+", " ", store).strip()
+    normalized = re.sub(r"\s+", " ", store).strip()
+    normalized = re.sub(r"\s*●?\s*[（(]買物[）)]\s*$", "", normalized).strip()
+    return re.sub(r"\s*●\s*$", "", normalized).strip()
 
 
 def _parse_amount(text: str) -> int:
-    normalized = text.replace(",", "").replace("円", "").strip()
+    normalized = text.replace(",", "").replace("円", "").replace("JPY", "").strip()
+    normalized = re.sub(r"\.0+$", "", normalized)
     if not normalized or normalized == "-":
         raise ValueError("金額が空です。")
     return int(normalized)
+
+
+def _amount_pattern() -> str:
+    return r"([0-9]{1,3}(?:,[0-9]{3})*|[0-9]+)(?:\.0+)?\s*(?:円|JPY)"
+
+
+def _datetime_pattern() -> str:
+    return r"(\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}(?::\d{2})?)"
 
 
 def _first_match(patterns: Iterable[str], text: str) -> re.Match[str] | None:
@@ -194,6 +212,44 @@ def _extract_labeled_value(text: str, labels: Iterable[str]) -> str | None:
                 return normalized_line[index + len(label) :].strip()
 
     return None
+
+
+def _extract_lines_after_match(text: str, pattern: str) -> list[str]:
+    lines = text.splitlines()
+    for index, raw_line in enumerate(lines):
+        if re.search(pattern, raw_line):
+            return [line.strip() for line in lines[index + 1 :] if line.strip()]
+    return []
+
+
+def _extract_sumitomo_inline_values(text: str) -> tuple[str | None, str | None, str | None]:
+    date_match = re.search(rf"ご利用日時\s*[:：]\s*{_datetime_pattern()}", text)
+    if not date_match:
+        return None, None, None
+
+    store_text = None
+    amount_text = None
+    following_lines = _extract_lines_after_match(text, r"ご利用日時\s*[:：]")
+
+    for line in following_lines:
+        amount_match = re.fullmatch(_amount_pattern(), line)
+        if amount_match:
+            amount_text = amount_match.group(1)
+            break
+
+        if store_text is None and not re.search(r"^(本メール|ご利用情報|身に覚え)", line):
+            store_text = _normalize_store(line)
+
+    return date_match.group(1), amount_text, store_text
+
+
+def _detect_sumitomo_payment_type(text: str) -> str:
+    normalized_text = text.replace("\u3000", " ")
+    if re.search(r"Ｏｌｉｖｅ／クレジット|Olive/クレジット|クレジットモード", normalized_text):
+        return "クレジット"
+    if re.search(r"デビット|Debit|iDデビット", normalized_text, re.IGNORECASE):
+        return "デビット"
+    return "不明"
 
 
 def _collect_transactions(service, query: str, parser, label: str) -> list[Transaction]:
@@ -254,6 +310,7 @@ def _parse_yucho_transaction(text: str) -> Transaction:
         amount=_parse_amount(amount_text),
         store=_normalize_store(store_text),
         source="ゆうちょ",
+        payment_type="デビット",
     )
 
 
@@ -263,10 +320,16 @@ def _parse_sumitomo_transaction(text: str) -> Transaction:
     store_text = _extract_labeled_value(text, ["ご利用先", "利用先"])
 
     date_match = (
-        re.search(r"(\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2})", date_text)
+        re.search(_datetime_pattern(), date_text)
         if date_text
         else None
     )
+
+    if not date_match or not amount_text or not store_text:
+        inline_date, inline_amount, inline_store = _extract_sumitomo_inline_values(text)
+        date_match = re.search(_datetime_pattern(), inline_date or "")
+        amount_text = amount_text or inline_amount
+        store_text = store_text or inline_store
 
     if not date_match or not amount_text or not store_text:
         raise ValueError("三井住友メールの必要情報を抽出できませんでした。")
@@ -276,6 +339,7 @@ def _parse_sumitomo_transaction(text: str) -> Transaction:
         amount=_parse_amount(amount_text),
         store=_normalize_store(store_text),
         source="三井住友",
+        payment_type=_detect_sumitomo_payment_type(text),
     )
 
 
@@ -299,6 +363,7 @@ def get_visa_transactions(service) -> list[Transaction]:
             transaction.amount,
             transaction.store,
             transaction.source,
+            transaction.payment_type,
         ): transaction
         for transaction in yucho_transactions + sumitomo_transactions
     }
@@ -353,6 +418,7 @@ def load_paypay_transactions(csv_path: str) -> list[Transaction]:
                     amount=_parse_amount(amount_text),
                     store=_normalize_store(row.get("取引先") or ""),
                     source="PayPay",
+                    payment_type="PayPay",
                 )
             )
 
@@ -362,6 +428,7 @@ def load_paypay_transactions(csv_path: str) -> list[Transaction]:
             transaction.amount,
             transaction.store,
             transaction.source,
+            transaction.payment_type,
         ): transaction
         for transaction in transactions
     }
@@ -404,7 +471,7 @@ def write_empty_headers(worksheet: gspread.Worksheet) -> None:
 
 
 def combined_transactions_formula() -> str:
-    return "{'Visa'!A2:D;'PayPay'!A2:D}"
+    return "{'Visa'!A2:E;'PayPay'!A2:E}"
 
 
 def write_total_sheet(worksheet: gspread.Worksheet) -> None:

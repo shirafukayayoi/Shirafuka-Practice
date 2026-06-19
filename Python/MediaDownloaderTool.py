@@ -22,6 +22,7 @@ from googleapiclient.http import MediaFileUpload
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)  # Shirafuka-Practiceディレクトリ
 TOKENS_DIR = os.path.join(PROJECT_ROOT, "tokens")
+TOOLS_DIR = os.path.join(PROJECT_ROOT, "Tools")
 
 
 def resolve_executable(env_name, executable_name, default_path=None):
@@ -45,7 +46,15 @@ def cuda_available():
 
 class MediaDownloader:
     def __init__(self):
-        self.ytdlp_path = os.getenv("YT-DLP_PATH")
+        env_path = os.getenv("YT-DLP_PATH")
+        tools_ytdlp_path = os.path.join(TOOLS_DIR, "yt-dlp.exe")
+        self.ytdlp_path = (
+            env_path
+            if env_path and os.path.exists(env_path)
+            else tools_ytdlp_path
+            if os.path.exists(tools_ytdlp_path)
+            else shutil.which("yt-dlp")
+        )
 
     def download_video(self, url, output_path="."):
         """
@@ -61,6 +70,10 @@ class MediaDownloader:
         before_files = set(glob.glob(os.path.join(output_path, "*.mp4")))
 
         # yt-dlpコマンドを構築
+        if not (self.ytdlp_path and os.path.exists(self.ytdlp_path)):
+            print(f"[Error] yt-dlpが見つかりません: {self.ytdlp_path}")
+            return None
+
         output_template = os.path.join(output_path, "%(title)s.%(ext)s")
         command = [
             self.ytdlp_path,
