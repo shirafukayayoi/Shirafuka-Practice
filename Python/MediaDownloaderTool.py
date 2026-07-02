@@ -79,7 +79,10 @@ class MediaDownloader:
         command = [
             self.ytdlp_path,
             "-f",
-            "bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080][ext=mp4]/best[height<=1080]",
+            # ext=mp4を強制せず最高画質ストリームを選択し、下でmp4へマージする
+            "bestvideo[height<=1080]+bestaudio/best[height<=1080]/best",
+            "--merge-output-format",
+            "mp4",  # 常にmp4へマージ
             "-o",
             output_template,
             "--no-playlist",  # プレイリストの場合は最初の1件のみ
@@ -258,15 +261,21 @@ class VideoVerticalConverter:
             "-c:v",
             "h264_nvenc",
             "-preset",
-            "p4",  # p1(fastest)-p7(slowest), p4=balanced
+            "p6",  # p1(fastest)-p7(slowest), p6=高画質重視
+            "-tune",
+            "hq",  # 高画質チューニング
             "-rc:v",
             "vbr",
             "-cq:v",
-            "19",
+            "19",  # CQ=19 (低いほど高画質)
             "-b:v",
-            "5M",
+            "0",  # ビットレート目標を無効化しCQで品質駆動
             "-maxrate:v",
-            "10M",
+            "40M",  # ピーク時の上限を引き上げ(旧10M)
+            "-bufsize:v",
+            "80M",
+            "-profile:v",
+            "high",
             "-c:a",
             "copy",
             self.output_path,
@@ -304,9 +313,11 @@ class VideoVerticalConverter:
             "-c:v",
             "libx264",
             "-preset",
-            "veryfast",
+            "slow",  # veryfast→slow (品質重視)
             "-crf",
-            "20",
+            "18",  # 20→18 (低いほど高画質、視覚的にほぼロスレス)
+            "-profile:v",
+            "high",
             "-pix_fmt",
             "yuv420p",
             "-c:a",
