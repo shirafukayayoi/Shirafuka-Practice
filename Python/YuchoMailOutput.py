@@ -6,6 +6,7 @@ import csv
 import os
 import re
 from dataclasses import dataclass
+from datetime import date, datetime
 from pathlib import Path
 from typing import Iterable
 
@@ -25,15 +26,19 @@ SPREADSHEET_ID_ENV = "YUCHO_SHEET"
 
 VISA_SHEET_NAME = "Visa"
 PAYPAY_SHEET_NAME = "PayPay"
+CANCEL_SHEET_NAME = "キャンセル"
 SUMMARY_SHEET_NAME = "決済"
 MONTHLY_SHEET_NAME = "月別"
 STORE_SHEET_NAME = "店舗別"
+MONTHLY_CHART_SHEET_NAME = "月別グラフ"
+STORE_CHART_SHEET_NAME = "店舗別グラフ"
 MONTHLY_STORE_SHEET_NAME = "月別店舗"
 MONTHLY_STORE_PIVOT_SHEET_NAME = "月別店舗ピボット"
 
 TRANSACTION_HEADERS = ["日時", "金額", "店舗", "決済元", "決済種別"]
 CURRENCY_FORMAT = {"numberFormat": {"type": "CURRENCY", "pattern": "¥#,##0"}}
-MAIN_STEP_TOTAL = 8
+MAIN_STEP_TOTAL = 9
+PROGRESS_BAR_WIDTH = 28
 
 
 @dataclass(frozen=True)
@@ -53,13 +58,42 @@ class Transaction:
             self.payment_type,
         ]
 
+    def key(self) -> tuple[str, int, str, str, str]:
+        return (
+            self.occurred_at.strip(),
+            self.amount,
+            _normalize_store(self.store),
+            self.source.strip(),
+            self.payment_type.strip(),
+        )
+
+
+def _progress_bar(current: int, total: int, width: int = PROGRESS_BAR_WIDTH) -> str:
+    if total <= 0:
+        filled = 0
+        percent = 0
+    else:
+        filled = min(width, max(0, round(width * current / total)))
+        percent = min(100, max(0, round(100 * current / total)))
+    return f"[{'#' * filled}{'-' * (width - filled)}] {current}/{total} {percent:3d}%"
+
 
 def log_step(step: int, message: str) -> None:
-    print(f"[Step {step}/{MAIN_STEP_TOTAL}] {message}")
+    print(f"全体 {_progress_bar(step, MAIN_STEP_TOTAL)}  {message}", flush=True)
 
 
 def log_info(message: str) -> None:
-    print(f"[Info] {message}")
+    print(f"  - {message}", flush=True)
+
+
+def log_warning(message: str) -> None:
+    print(f"  ! {message}", flush=True)
+
+
+def log_progress(label: str, current: int, total: int) -> None:
+    print(f"\r{label} {_progress_bar(current, total)}", end="", flush=True)
+    if current >= total:
+        print()
 
 
 def parse_args() -> argparse.Namespace:
@@ -163,7 +197,13 @@ def _normalize_store(store: str) -> str:
 
 
 def _parse_amount(text: str) -> int:
-    normalized = text.replace(",", "").replace("円", "").replace("JPY", "").strip()
+    normalized = (
+        text.replace(",", "")
+        .replace("円", "")
+        .replace("JPY", "")
+        .replace("¥", "")
+        .strip()
+    )
     normalized = re.sub(r"\.0+$", "", normalized)
     if not normalized or normalized == "-":
         raise ValueError("金額が空です。")
@@ -258,8 +298,13 @@ def _collect_transactions(service, query: str, parser, label: str) -> list[Trans
     log_info(f"{label}メールを検索中...")
     messages = _search_messages(service, query)
     log_info(f"{label}メールの本文を取得・解析中...")
+    total_messages = len(messages)
+    progress_interval = max(1, total_messages // PROGRESS_BAR_WIDTH) if total_messages else 1
 
-    for message in messages:
+    if total_messages:
+        log_progress(f"{label}解析", 0, total_messages)
+
+    for index, message in enumerate(messages, start=1):
         payload = service.users().messages().get(userId="me", id=message["id"]).execute()
         text = _extract_plain_text_from_payload(payload.get("payload", {}))
 
@@ -268,10 +313,13 @@ def _collect_transactions(service, query: str, parser, label: str) -> list[Trans
         except ValueError:
             errors.append(text[:200])
 
+        if index == total_messages or index % progress_interval == 0:
+            log_progress(f"{label}解析", index, total_messages)
+
     if errors:
-        print(f"[Warn] {label}でパースできなかったメール {len(errors)} 件")
+        log_warning(f"{label}でパースできなかったメール {len(errors)} 件")
         for index, sample in enumerate(errors[:3], start=1):
-            print(f"[Warn] sample{index}: {sample}")
+            log_warning(f"sample{index}: {sample}")
 
     log_info(f"{label}の取得件数: {len(transactions)}")
     return transactions
@@ -369,7 +417,7 @@ def get_visa_transactions(service) -> list[Transaction]:
     }
 
     transactions = sorted(unique_transactions.values(), key=lambda item: item.occurred_at)
-    print(f"[Info] Visaシート反映件数: {len(transactions)}")
+    log_info(f"Visaシート反映件数: {len(transactions)}")
     return transactions
 
 
@@ -457,6 +505,30 @@ def get_or_create_worksheet(
     return worksheet
 
 
+def get_or_recreate_grid_worksheet(
+    spreadsheet: gspread.Spreadsheet,
+    sheets_service,
+    title: str,
+    rows: int,
+    cols: int,
+) -> gspread.Worksheet:
+    metadata = (
+        sheets_service.spreadsheets()
+        .get(spreadsheetId=spreadsheet.id, fields="sheets(properties(sheetId,title,sheetType))")
+        .execute()
+    )
+    for sheet in metadata.get("sheets", []):
+        properties = sheet.get("properties", {})
+        if properties.get("title") == title and properties.get("sheetType") == "OBJECT":
+            sheets_service.spreadsheets().batchUpdate(
+                spreadsheetId=spreadsheet.id,
+                body={"requests": [{"deleteSheet": {"sheetId": properties["sheetId"]}}]},
+            ).execute()
+            return spreadsheet.add_worksheet(title=title, rows=rows, cols=cols)
+
+    return get_or_create_worksheet(spreadsheet, title, rows=rows, cols=cols)
+
+
 def write_transactions(worksheet: gspread.Worksheet, transactions: list[Transaction]) -> None:
     rows = [TRANSACTION_HEADERS] + [transaction.as_row() for transaction in transactions]
     worksheet.clear()
@@ -468,6 +540,122 @@ def write_empty_headers(worksheet: gspread.Worksheet) -> None:
     worksheet.clear()
     worksheet.update(values=[TRANSACTION_HEADERS], range_name="A1")
     worksheet.format("B2:B", CURRENCY_FORMAT)
+
+
+def ensure_transaction_headers(worksheet: gspread.Worksheet) -> None:
+    current_headers = worksheet.row_values(1)
+    if current_headers[: len(TRANSACTION_HEADERS)] != TRANSACTION_HEADERS:
+        worksheet.update(values=[TRANSACTION_HEADERS], range_name="A1")
+    worksheet.format("B2:B", CURRENCY_FORMAT)
+
+
+def _transaction_key_from_row(row: list[str]) -> tuple[str, int, str, str, str] | None:
+    if len(row) < len(TRANSACTION_HEADERS):
+        return None
+
+    occurred_at, amount_text, store, source, payment_type = [
+        (cell or "").strip() for cell in row[: len(TRANSACTION_HEADERS)]
+    ]
+    if not occurred_at or not amount_text or not store or not source or not payment_type:
+        return None
+
+    try:
+        amount = _parse_amount(amount_text)
+    except ValueError:
+        return None
+
+    return (
+        occurred_at,
+        amount,
+        _normalize_store(store),
+        source,
+        payment_type,
+    )
+
+
+def load_cancelled_transaction_keys(
+    worksheet: gspread.Worksheet,
+) -> set[tuple[str, int, str, str, str]]:
+    ensure_transaction_headers(worksheet)
+    rows = worksheet.get_all_values()[1:]
+    keys = {
+        key
+        for row in rows
+        if (key := _transaction_key_from_row(row)) is not None
+    }
+    log_info(f"キャンセル表登録件数: {len(keys)}")
+    return keys
+
+
+def exclude_cancelled_transactions(
+    transactions: list[Transaction],
+    cancelled_keys: set[tuple[str, int, str, str, str]],
+) -> list[Transaction]:
+    if not cancelled_keys:
+        log_info("キャンセル除外件数: 0")
+        return transactions
+
+    filtered = [
+        transaction
+        for transaction in transactions
+        if transaction.key() not in cancelled_keys
+    ]
+    log_info(f"キャンセル除外件数: {len(transactions) - len(filtered)}")
+    return filtered
+
+
+def _parse_transaction_date(text: str) -> date | None:
+    date_text = (text or "").strip()[:10]
+    try:
+        return datetime.strptime(date_text, "%Y/%m/%d").date()
+    except ValueError:
+        return None
+
+
+def _transaction_amount_from_row(row: list[str]) -> int | None:
+    if len(row) < 2:
+        return None
+
+    try:
+        return _parse_amount(row[1])
+    except ValueError:
+        return None
+
+
+def _summary_rows_from_worksheet(worksheet: gspread.Worksheet) -> list[tuple[date, int]]:
+    rows: list[tuple[date, int]] = []
+    for row in worksheet.get_all_values()[1:]:
+        occurred_on = _parse_transaction_date(row[0] if row else "")
+        amount = _transaction_amount_from_row(row)
+        if occurred_on is not None and amount is not None:
+            rows.append((occurred_on, amount))
+    return rows
+
+
+def _format_yen(amount: int) -> str:
+    return f"¥{amount:,}"
+
+
+def print_execution_summary(worksheets: Iterable[gspread.Worksheet]) -> None:
+    today = date.today()
+    rows: list[tuple[date, int]] = []
+    for worksheet in worksheets:
+        rows.extend(_summary_rows_from_worksheet(worksheet))
+
+    all_time_total = sum(amount for _, amount in rows)
+    year_total = sum(amount for occurred_on, amount in rows if occurred_on.year == today.year)
+    month_total = sum(
+        amount
+        for occurred_on, amount in rows
+        if occurred_on.year == today.year and occurred_on.month == today.month
+    )
+
+    print()
+    print("実行サマリー")
+    print(f"  - 今までの合計: {_format_yen(all_time_total)}")
+    print(f"  - {today.year}年の合計: {_format_yen(year_total)}")
+    print(f"  - {today.year}/{today.month:02d} の合計: {_format_yen(month_total)}")
+    print(f"  - 集計対象の取引件数: {len(rows)}件")
 
 
 def combined_transactions_formula() -> str:
@@ -579,8 +767,9 @@ def _delete_existing_charts(sheets_service, spreadsheet_id: str, target_sheet_id
     delete_requests = []
     for sheet in metadata.get("sheets", []):
         for chart in sheet.get("charts", []):
-            anchor = chart.get("position", {}).get("overlayPosition", {}).get("anchorCell", {})
-            if anchor.get("sheetId") in target_sheet_ids:
+            position = chart.get("position", {})
+            anchor = position.get("overlayPosition", {}).get("anchorCell", {})
+            if position.get("sheetId") in target_sheet_ids or anchor.get("sheetId") in target_sheet_ids:
                 delete_requests.append(
                     {"deleteEmbeddedObject": {"objectId": chart["chartId"]}}
                 )
@@ -606,101 +795,108 @@ def _source_range(sheet_id: int, start_row: int, end_row: int, start_col: int, e
     }
 
 
+def _chart_position(target_sheet_id: int, height_pixels: int):
+    return {
+        "overlayPosition": {
+            "anchorCell": {
+                "sheetId": target_sheet_id,
+                "rowIndex": 0,
+                "columnIndex": 0,
+            },
+            "offsetXPixels": 0,
+            "offsetYPixels": 0,
+            "widthPixels": 720,
+            "heightPixels": height_pixels,
+        }
+    }
+
+
+def _monthly_chart_spec(monthly_sheet: gspread.Worksheet) -> dict:
+    return {
+        "title": "月別支出推移",
+        "basicChart": {
+            "chartType": "COLUMN",
+            "legendPosition": "NO_LEGEND",
+            "axis": [
+                {"position": "BOTTOM_AXIS", "title": "月"},
+                {"position": "LEFT_AXIS", "title": "金額"},
+            ],
+            "domains": [
+                {"domain": {"sourceRange": _source_range(monthly_sheet.id, 1, 2000, 0, 1)}}
+            ],
+            "series": [
+                {
+                    "series": {
+                        "sourceRange": _source_range(monthly_sheet.id, 1, 2000, 1, 2)
+                    },
+                    "targetAxis": "LEFT_AXIS",
+                }
+            ],
+            "headerCount": 0,
+        },
+    }
+
+
+def _store_chart_spec(store_sheet: gspread.Worksheet) -> dict:
+    return {
+        "title": "店舗別支出上位",
+        "basicChart": {
+            "chartType": "BAR",
+            "legendPosition": "NO_LEGEND",
+            "axis": [
+                {"position": "BOTTOM_AXIS", "title": "金額"},
+                {"position": "LEFT_AXIS", "title": "店舗"},
+            ],
+            "domains": [
+                {"domain": {"sourceRange": _source_range(store_sheet.id, 1, 11, 0, 1)}}
+            ],
+            "series": [
+                {
+                    "series": {
+                        "sourceRange": _source_range(store_sheet.id, 1, 11, 1, 2)
+                    },
+                    "targetAxis": "BOTTOM_AXIS",
+                }
+            ],
+            "headerCount": 0,
+        },
+    }
+
+
+def _chart_request(
+    spec: dict,
+    target_sheet_id: int,
+    height_pixels: int,
+) -> dict:
+    return {
+        "addChart": {
+            "chart": {
+                "spec": spec,
+                "position": _chart_position(target_sheet_id, height_pixels),
+            }
+        }
+    }
+
+
 def create_summary_charts(
     spreadsheet: gspread.Spreadsheet,
     creds: Credentials,
     monthly_sheet: gspread.Worksheet,
     store_sheet: gspread.Worksheet,
+    monthly_chart_sheet: gspread.Worksheet,
+    store_chart_sheet: gspread.Worksheet,
 ) -> None:
     sheets_service = _build_sheets_service(creds)
     spreadsheet_id = spreadsheet.id
-    _delete_existing_charts(sheets_service, spreadsheet_id, {monthly_sheet.id, store_sheet.id})
+    _delete_existing_charts(
+        sheets_service,
+        spreadsheet_id,
+        {monthly_sheet.id, store_sheet.id, monthly_chart_sheet.id, store_chart_sheet.id},
+    )
 
     requests = [
-        {
-            "addChart": {
-                "chart": {
-                    "spec": {
-                        "title": "月別支出推移",
-                        "basicChart": {
-                            "chartType": "COLUMN",
-                            "legendPosition": "NO_LEGEND",
-                            "axis": [
-                                {"position": "BOTTOM_AXIS", "title": "月"},
-                                {"position": "LEFT_AXIS", "title": "金額"},
-                            ],
-                            "domains": [
-                                {"domain": {"sourceRange": _source_range(monthly_sheet.id, 1, 2000, 0, 1)}}
-                            ],
-                            "series": [
-                                {
-                                    "series": {
-                                        "sourceRange": _source_range(monthly_sheet.id, 1, 2000, 1, 2)
-                                    },
-                                    "targetAxis": "LEFT_AXIS",
-                                }
-                            ],
-                            "headerCount": 0,
-                        },
-                    },
-                    "position": {
-                        "overlayPosition": {
-                            "anchorCell": {
-                                "sheetId": monthly_sheet.id,
-                                "rowIndex": 0,
-                                "columnIndex": 3,
-                            },
-                            "offsetXPixels": 16,
-                            "offsetYPixels": 16,
-                            "widthPixels": 720,
-                            "heightPixels": 420,
-                        }
-                    },
-                }
-            }
-        },
-        {
-            "addChart": {
-                "chart": {
-                    "spec": {
-                        "title": "店舗別支出上位",
-                        "basicChart": {
-                            "chartType": "BAR",
-                            "legendPosition": "NO_LEGEND",
-                            "axis": [
-                                {"position": "BOTTOM_AXIS", "title": "金額"},
-                                {"position": "LEFT_AXIS", "title": "店舗"},
-                            ],
-                            "domains": [
-                                {"domain": {"sourceRange": _source_range(store_sheet.id, 1, 11, 0, 1)}}
-                            ],
-                            "series": [
-                                {
-                                    "series": {
-                                        "sourceRange": _source_range(store_sheet.id, 1, 11, 1, 2)
-                                    },
-                                    "targetAxis": "BOTTOM_AXIS",
-                                }
-                            ],
-                            "headerCount": 0,
-                        },
-                    },
-                    "position": {
-                        "overlayPosition": {
-                            "anchorCell": {
-                                "sheetId": store_sheet.id,
-                                "rowIndex": 0,
-                                "columnIndex": 3,
-                            },
-                            "offsetXPixels": 16,
-                            "offsetYPixels": 16,
-                            "widthPixels": 720,
-                            "heightPixels": 520,
-                        }
-                    },
-                }
-            }
-        },
+        _chart_request(_monthly_chart_spec(monthly_sheet), monthly_chart_sheet.id, 420),
+        _chart_request(_store_chart_spec(store_sheet), store_chart_sheet.id, 520),
     ]
 
     sheets_service.spreadsheets().batchUpdate(
@@ -720,13 +916,31 @@ def main() -> None:
     service = gmail_login()
     log_step(3, "スプレッドシートに認証中...")
     spreadsheet, sheet_creds = spreadsheet_login()
+    sheets_service = _build_sheets_service(sheet_creds)
 
     log_step(4, "ワークシートを確認・作成中...")
     visa_sheet = get_or_create_worksheet(spreadsheet, VISA_SHEET_NAME, rows=2000, cols=8)
     paypay_sheet = get_or_create_worksheet(spreadsheet, PAYPAY_SHEET_NAME, rows=2000, cols=8)
+    cancel_sheet = get_or_create_worksheet(
+        spreadsheet, CANCEL_SHEET_NAME, rows=1000, cols=8
+    )
     summary_sheet = get_or_create_worksheet(spreadsheet, SUMMARY_SHEET_NAME, rows=200, cols=8)
     monthly_sheet = get_or_create_worksheet(spreadsheet, MONTHLY_SHEET_NAME, rows=2000, cols=8)
     store_sheet = get_or_create_worksheet(spreadsheet, STORE_SHEET_NAME, rows=2000, cols=8)
+    monthly_chart_sheet = get_or_recreate_grid_worksheet(
+        spreadsheet,
+        sheets_service,
+        MONTHLY_CHART_SHEET_NAME,
+        rows=30,
+        cols=12,
+    )
+    store_chart_sheet = get_or_recreate_grid_worksheet(
+        spreadsheet,
+        sheets_service,
+        STORE_CHART_SHEET_NAME,
+        rows=30,
+        cols=12,
+    )
     monthly_store_sheet = get_or_create_worksheet(
         spreadsheet, MONTHLY_STORE_SHEET_NAME, rows=5000, cols=8
     )
@@ -736,6 +950,8 @@ def main() -> None:
 
     log_step(5, "Visa 取引を取得してシートへ反映中...")
     visa_transactions = get_visa_transactions(service)
+    cancelled_keys = load_cancelled_transaction_keys(cancel_sheet)
+    visa_transactions = exclude_cancelled_transactions(visa_transactions, cancelled_keys)
     write_transactions(visa_sheet, visa_transactions)
 
     log_step(6, "PayPay 取引の反映可否を確認中...")
@@ -755,9 +971,18 @@ def main() -> None:
     write_store_sheet(store_sheet)
     write_monthly_store_sheet(monthly_store_sheet)
     write_monthly_store_pivot_sheet(monthly_store_pivot_sheet)
-    log_step(8, "グラフを作成して完了処理中...")
-    create_summary_charts(spreadsheet, sheet_creds, monthly_sheet, store_sheet)
+    log_step(8, "グラフを作成中...")
+    create_summary_charts(
+        spreadsheet,
+        sheet_creds,
+        monthly_sheet,
+        store_sheet,
+        monthly_chart_sheet,
+        store_chart_sheet,
+    )
 
+    log_step(9, "実行結果を集計中...")
+    print_execution_summary([visa_sheet, paypay_sheet])
     log_info("スプレッドシートの更新が完了しました。")
 
 
