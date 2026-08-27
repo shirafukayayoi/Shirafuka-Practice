@@ -637,6 +637,55 @@ yt-dlpを使って動画をダウンロードするPython。
 - `2026/01/22`:三井住友カードの「ご利用のお知らせ」メールも読み取り、日付・金額・利用先をゆうちょ分とまとめてスプレッドシートに出力するようにした。
 - `2026/01/23`: 重複防止、月別合計・日別最大日/最大額、店舗別TOP、全体高額TOP5、金額の通貨書式、パース失敗時の警告出力を追加し、シートに各集計を出力するようにした。
 
+### DailySpendingCalendar.py
+
+`Add 2026/08/27`  
+`YuchoMailOutput.py` が更新したGoogleスプレッドシートの `Visa`・`PayPay` シートから、指定日の支出を集計してGoogleカレンダーへ終日予定として登録するPythonコード。
+
+予定タイトルには合計金額と件数、説明欄には時刻・店舗・金額・決済元・決済種別を記録します。同じ日で再実行した場合は予定を重複作成せず、既存予定を更新します。
+
+**主な機能:**
+
+- 日本時間の当日、または `--date` で指定した日の支出を集計
+- `Visa`・`PayPay` シートの明細をまとめて登録
+- 日付ごとの固定イベントIDと拡張プロパティで重複を防止
+- `--dry-run` でカレンダーを変更せず登録内容を確認
+- 支出が0件の場合は通常何も登録せず、`--delete-if-empty` 指定時のみ既存予定を削除
+
+**必要な準備:**
+
+- `.env` に `YUCHO_SHEET=<GoogleスプレッドシートID>` を設定
+- `tokens/credentials.json` にGoogle OAuthデスクトップクライアント情報を配置
+- Google CloudでGoogle Sheets APIとGoogle Calendar APIを有効化
+- 初回の通常実行時にカレンダー認証を完了
+- 登録先を変える場合は、コード内の `CALENDAR_ID` を変更
+
+**必要なライブラリ:**
+
+```powershell
+pip install gspread google-api-python-client google-auth google-auth-oauthlib python-dotenv
+```
+
+**実行例:**
+
+```powershell
+# 今日の登録内容だけを確認
+python Python\DailySpendingCalendar.py --dry-run
+
+# 今日の支出を登録または更新
+python Python\DailySpendingCalendar.py
+
+# 指定日の支出を登録または更新
+python Python\DailySpendingCalendar.py --date 2026-08-27
+
+# 支出が0件なら、このスクリプトが作成した同日の予定を削除
+python Python\DailySpendingCalendar.py --date 2026-08-27 --delete-if-empty
+```
+
+初回認証後、カレンダー用トークンは `tokens/calendar_token.json` に保存されます。このファイルはコミットしないでください。
+
+`YuchoMailOutput.py` の完了後に自動実行する場合は、同ファイルの最後で `DailySpendingCalendar.py` をサブプロセスとして呼び出します。
+
 ### YuchoMailOutputCSV.py
 
 `Add 2024/12/17`  
